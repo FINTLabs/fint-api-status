@@ -18,9 +18,9 @@ public class HealthService {
     public String healthCheckAll(Map<String, LinkedList<String>> domenekart) {
         StringBuilder status = new StringBuilder();
 
-        Set<String> domene1nøkkel = domenekart.keySet();
+        Set<String> domene1nokkel = domenekart.keySet();
 
-        for (String hoveddomene : domene1nøkkel) {
+        for (String hoveddomene : domene1nokkel) {
             LinkedList<String> underdomener = domenekart.get(hoveddomene);
             for (String underdomene : underdomener) {
                 status.append(healthCheck(hoveddomene,underdomene));
@@ -33,7 +33,7 @@ public class HealthService {
         StringBuilder status = new StringBuilder();
         String nyHealthCheckURL = String
                 .format("https://play-with-fint.felleskomponent.no/%s/%s/admin/health", hoveddomene, underdomene);
-        status.append("<br><br>Nå tester vi:<br>" + nyHealthCheckURL + "<br><br>");
+        status.append(String.format("%s %s %s", "<br><br>Nå tester vi:<br>" ,nyHealthCheckURL, "<br><br>"));
         webClient = WebClient.builder()
                 .baseUrl(nyHealthCheckURL)
                 .defaultHeader("x-client", "testbruker")

@@ -16,8 +16,8 @@ public class Controller {
     private HealthService healthService;
 
     private TreeMap<String, LinkedList<String>> domenekart = new TreeMap<>();
-    private String domene1 = "administrasjon";
-    private String domene2 = "utdanning";
+    private final String domene1 = "administrasjon";
+    private final String domene2 = "utdanning";
     private LinkedList<String> domene1Underdomener = new LinkedList<>();
     private LinkedList<String> domene2Underdomener = new LinkedList<>();
 
@@ -52,7 +52,7 @@ public class Controller {
         return makeReadable(healthService.healthCheck(domene, underdomene));
     }
     private String makeReadable(String status) {
-        if (status != null && status.length() > 50) {
+        if (status != null) {
             status = status.replace("{", "{<br>");
             status = status.replace("}", "}<br>");
             status = status.replace("[", "<blockquote>[");
