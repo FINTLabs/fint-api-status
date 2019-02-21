@@ -57,7 +57,8 @@ public class Controller {
             status = status.replace("}", "}<br>");
             status = status.replace("[", "<blockquote>[");
             status = status.replace("]", "]</blockquote>");
-
+            status = status.replace("No response from adapter", "<b>No response from adapter</b>");
+            status = status.replace("APPLICATION_HEALTHY", "<b>APPLICATION_HEALTHY</b>");
             System.out.println(status);
         }
         return status;
