@@ -5,10 +5,7 @@ import java.util.List;
 import java.util.TreeMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(value = "/api")
@@ -34,8 +31,8 @@ public class Controller {
         return var;
     }
 
-    @GetMapping(value = "/healthcheck")
-    public String getHealthCheckStatus() {
+    @GetMapping(value = "/healthcheck/all")
+    public String getHealthCheckStatusAll() {
         domene1Underdomener.add("personal");
         domene1Underdomener.add("organisasjon");
         domene1Underdomener.add("kodeverk");
@@ -46,12 +43,21 @@ public class Controller {
         domene2Underdomener.add("timeplan");
         domene2Underdomener.add("kodeverk");
         domenekart.put(domene2, domene2Underdomener);
-        return makeReadable(healthService.healthCheck(domenekart));
+        return makeReadable(healthService.healthCheckAll(domenekart));
+    }
+    @GetMapping(value = "/healthcheckwithdomene/{domene}/{underdomene}")
+    public String getHealthCheckStatusByDomene(
+            @PathVariable("domene") final String domene,
+            @PathVariable("underdomene") final String underdomene) {
+        return makeReadable(healthService.healthCheck(domene, underdomene));
     }
     private String makeReadable(String status) {
         if (status != null && status.length() > 50) {
             status = status.replace("{", "{<br>");
             status = status.replace("}", "}<br>");
+            status = status.replace("[", "<blockquote>[");
+            status = status.replace("]", "]</blockquote>");
+
             System.out.println(status);
         }
         return status;

@@ -15,26 +15,31 @@ public class HealthService {
     @Autowired
     private WebClient webClient;
 
-    public String healthCheck(Map<String, LinkedList<String>> domenekart){
+    public String healthCheckAll(Map<String, LinkedList<String>> domenekart) {
         StringBuilder status = new StringBuilder();
 
         Set<String> domene1nøkkel = domenekart.keySet();
 
         for (String hoveddomene : domene1nøkkel) {
             LinkedList<String> underdomener = domenekart.get(hoveddomene);
-            for (String underdomene : underdomener){
-                String nyHealthCheckURL = String
-                        .format("https://play-with-fint.felleskomponent.no/%s/%s/admin/health", hoveddomene,underdomene);
-                status.append("<br><br>Nå tester vi:<br>"+nyHealthCheckURL+ "<br><br>");
-                webClient = WebClient.builder()
-                        .baseUrl(nyHealthCheckURL)
-                        .defaultHeader("x-client", "testbruker")
-                        .defaultHeader("x-org-id", "fint.health")
-                        .build();
-                Mono<String> test = webClient.get().exchange().block().bodyToMono(String.class);
-                status.append(test.block());
+            for (String underdomene : underdomener) {
+                status.append(healthCheck(hoveddomene,underdomene));
             }
         }
         return status.toString();
+    }
+
+    public String healthCheck(String hoveddomene, String underdomene) {
+        StringBuilder status = new StringBuilder();
+        String nyHealthCheckURL = String
+                .format("https://play-with-fint.felleskomponent.no/%s/%s/admin/health", hoveddomene, underdomene);
+        status.append("<br><br>Nå tester vi:<br>" + nyHealthCheckURL + "<br><br>");
+        webClient = WebClient.builder()
+                .baseUrl(nyHealthCheckURL)
+                .defaultHeader("x-client", "testbruker")
+                .defaultHeader("x-org-id", "fint.health")
+                .build();
+        Mono<String> healthResult = webClient.get().exchange().block().bodyToMono(String.class);
+        return status.append(healthResult.block()).toString();
     }
 }
