@@ -1,6 +1,7 @@
 package no.fint.fintapistatus.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -12,6 +13,10 @@ import java.util.Set;
 public class HealthService {
 
     public static final String healthCheckURL = "https://play-with-fint.felleskomponent.no/utdanning/timeplan/admin/health";
+
+    @Value("${baseUrl:https://play-with-fint.felleskomponent.no/}")
+    private String baseUrl;
+
     @Autowired
     private WebClient webClient;
 
@@ -32,7 +37,7 @@ public class HealthService {
     public String healthCheck(String hoveddomene, String underdomene) {
         StringBuilder status = new StringBuilder();
         String nyHealthCheckURL = String
-                .format("https://play-with-fint.felleskomponent.no/%s/%s/admin/health", hoveddomene, underdomene);
+                .format("%s%s/%s/admin/health", baseUrl, hoveddomene, underdomene);
         status.append(String.format("%s %s %s", "<br><br>Nå tester vi:<br>" ,nyHealthCheckURL, "<br><br>"));
         webClient = WebClient.builder()
                 .baseUrl(nyHealthCheckURL)
