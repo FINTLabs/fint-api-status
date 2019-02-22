@@ -14,14 +14,15 @@ class HealthServiceSpec extends Specification {
 
   def "Health check given valid domains return application status"() {
     given:
-      mockWebServer.enqueue(new MockResponse().setBody('{"status": "APPLICATION_HEALTHY"}'))
+    mockWebServer.enqueue(new MockResponse().setBody('{"status": "APPLICATION_HEALTHY"}'))
 
     when:
-      def result = healthService.healthCheck('administrasjon', 'personal')
-      def request = mockWebServer.takeRequest()
+    def result = healthService.healthCheck('administrasjon', 'personal')
+    def request = mockWebServer.takeRequest()
 
     then:
-      request.path == '/administrasjon/personal/admin/health'
-      result
+    request.path == '/administrasjon/personal/admin/health'
+    result.status =
+    result.corrID
   }
 }
