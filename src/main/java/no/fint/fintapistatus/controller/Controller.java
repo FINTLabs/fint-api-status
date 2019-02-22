@@ -29,14 +29,32 @@ public class Controller {
         return var;
     }
 
-    @GetMapping(value = "/checkStatus")
-    public String checkStatus(){
-        StringBuilder completeStatus = new StringBuilder("Dette er den nåværende statusen fra healthStatusLogg i Controller:\n\n");
-        Set<String> mainDomains = healthStatusLogg.keySet();
-        for (String mainDomain : mainDomains){
-            Event lastLogg = healthStatusLogg.get(mainDomain).getLast();
-            completeStatus.append("For server: " + lastLogg.getSource() + " følgende resultat: <br>\n");
-            completeStatus.append(lastLogg.getData().toString());
+    @GetMapping(value = "/checkstatus/{typeOfCheck}")
+    public String checkStatus(@PathVariable final String typeOfCheck){
+        StringBuilder completeStatus = new StringBuilder();
+        Map map;
+        switch (typeOfCheck) {
+            case "healthy":
+                completeStatus.append("<br>Dette er den nåværende statusen fra healthStatusLogg i Controller:<br><br>");
+                map = healthStatusLogg;
+                break;
+            case "lastlog":
+                completeStatus.append("<br>Dette er den nåværende statusen fra lastHealthyStatus i Controller:<br><br>");
+                map = lastHealthyStatus;
+                break;
+            default:
+                completeStatus.append("Nå er det noe galt!");
+                map = null;
+                break;
+        }
+        if (map!=null){
+            Set<String> mainDomains = map.keySet();
+            for (String mainDomain : mainDomains){
+                Event lastLogg = typeOfCheck.equals("healthy") ? healthStatusLogg.get(mainDomain).getLast()
+                        : lastHealthyStatus.get(mainDomain);
+                completeStatus.append("<br><br>For server: " + lastLogg.getSource() + " følgende resultat: <br>");
+                completeStatus.append(lastLogg.getData().toString() + " <br>And message: "+lastLogg.getMessage());
+            }
         }
         return completeStatus.toString();
     }

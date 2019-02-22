@@ -35,10 +35,8 @@ public class HealthService {
     }
 
     public void healthCheck(String hoveddomene, String underdomene) {
-        StringBuilder status = new StringBuilder();
         String nyHealthCheckURL = String
                 .format("%s%s/%s/admin/health", baseUrl, hoveddomene, underdomene);
-        status.append(String.format("%s %s %s", "<br><br>Nå tester vi:<br>" ,nyHealthCheckURL, "<br><br>"));
         webClient = WebClient.builder()
                 .baseUrl(nyHealthCheckURL)
                 .defaultHeader("x-client", "testbruker")
@@ -46,6 +44,23 @@ public class HealthService {
                 .build();
         ClientResponse clientResponse = webClient.get().exchange().block();
         Event healthResult = clientResponse.bodyToMono(Event.class).block();
+        try{
+            addHealthResultToLogg(healthResult);
+        }catch (Exception e){
+            String key = String.format("%s-%s",hoveddomene,underdomene);
+            Event errorEvent = new Event();
+            errorEvent.setSource(key);
+            LinkedList<String> s = new LinkedList<>();
+            s.add(e.getMessage());
+            s.add(e.toString());
+            errorEvent.setData(s);
+            addHealthResultToLogg(errorEvent);
+        }
+
+
+    }
+
+    private void addHealthResultToLogg(Event healthResult) {
         if (healthResult != null){
             if (Controller.containsHealthyStatus(healthResult)){
                 Controller.lastHealthyStatus.put(healthResult.getSource(), healthResult);
@@ -56,9 +71,7 @@ public class HealthService {
                 LinkedList<Event> newList = new LinkedList<>();
                 newList.add(healthResult);
                 Controller.healthStatusLogg.put(healthResult.getSource(), newList);
-
             }
         }
-
     }
 }
