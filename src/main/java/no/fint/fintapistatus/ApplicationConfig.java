@@ -1,5 +1,6 @@
 package no.fint.fintapistatus;
 
+import no.fint.event.model.health.HealthStatus;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -11,4 +12,5 @@ public class ApplicationConfig {
     public WebClient webClient() {
         return WebClient.create();
     }
+
 }

@@ -1,6 +1,9 @@
 package no.fint.fintapistatus.controller;
 
 import no.fint.event.model.Event;
+import no.fint.event.model.EventUtil;
+import no.fint.event.model.health.Health;
+import no.fint.event.model.health.HealthStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -43,14 +46,12 @@ public class HealthService {
         try{
             Event healthResult = clientResponse.bodyToMono(Event.class).block();
             addHealthResultToLogg(healthResult);
-        }catch (Exception e){
+        }catch (Throwable throwable){
             String key = String.format("%s-%s",hoveddomene,underdomene);
-            Event errorEvent = new Event();
+            Event<String> errorEvent = new Event<>();
+            errorEvent.addData(throwable.getMessage());
+            errorEvent.addData(throwable.getClass().getSimpleName());
             errorEvent.setSource(key);
-            LinkedList<String> s = new LinkedList<>();
-            s.add(e.getMessage());
-            s.add(e.toString());
-            errorEvent.setData(s);
             addHealthResultToLogg(errorEvent);
         }
     }
@@ -71,14 +72,13 @@ public class HealthService {
     }
     private boolean containsHealthyStatus(Event event) {
          final String APLICATION_HEALTHY = "APPLICATION_HEALTHY";
-        if (event != null)
-            if (event.getData()!=null){
-                for (int i = 0; i <event.getData().size() ; i++) {
-                    if (event.getData().get(i).toString().contains(APLICATION_HEALTHY))
-                        return true;
-                }
+        if (event != null && event.getData()!=null){
+            List<Health> healthData = EventUtil.convertEventData(event, Health.class);
+            Optional<Health> healthyStatus = healthData.stream().filter(health ->
+                    HealthStatus.APPLICATION_HEALTHY.name().equals(health.getStatus()))
+                    .findAny();
+            return healthyStatus.isPresent();
             }
         return false;
-
     }
 }
