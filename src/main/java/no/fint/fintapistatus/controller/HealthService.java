@@ -6,15 +6,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class HealthService {
 
-    public static final String healthCheckURL = "https://play-with-fint.felleskomponent.no/utdanning/timeplan/admin/health";
+    private static final String healthCheckURL = "https://play-with-fint.felleskomponent.no/utdanning/timeplan/admin/health";
 
     @Value("${baseUrl:https://play-with-fint.felleskomponent.no/}")
     private String baseUrl;
@@ -23,13 +21,12 @@ public class HealthService {
     private WebClient webClient;
 
 
-    public void healthCheckAll(Map<String, LinkedList<String>> domenekart) {
-        Set<String> domene1nokkel = domenekart.keySet();
-
-        for (String hoveddomene : domene1nokkel) {
-            LinkedList<String> underdomener = domenekart.get(hoveddomene);
-            for (String underdomene : underdomener) {
-                 healthCheck(hoveddomene,underdomene);
+    public void healthCheckAll(Map<String, List<String>> domenekart) {
+        Set<String> domainKeys = domenekart.keySet();
+        for (String mainKey : domainKeys) {
+            List<String> secondaryDomains = domenekart.get(mainKey);
+            for (String secondaryDomain : secondaryDomains) {
+                 healthCheck(mainKey,secondaryDomain);
             }
         }
     }
@@ -43,8 +40,8 @@ public class HealthService {
                 .defaultHeader("x-org-id", "fint.health")
                 .build();
         ClientResponse clientResponse = webClient.get().exchange().block();
-        Event healthResult = clientResponse.bodyToMono(Event.class).block();
         try{
+            Event healthResult = clientResponse.bodyToMono(Event.class).block();
             addHealthResultToLogg(healthResult);
         }catch (Exception e){
             String key = String.format("%s-%s",hoveddomene,underdomene);
@@ -56,22 +53,32 @@ public class HealthService {
             errorEvent.setData(s);
             addHealthResultToLogg(errorEvent);
         }
-
-
     }
 
     private void addHealthResultToLogg(Event healthResult) {
         if (healthResult != null){
-            if (Controller.containsHealthyStatus(healthResult)){
+            if (containsHealthyStatus(healthResult)){
                 Controller.lastHealthyStatus.put(healthResult.getSource(), healthResult);
             }
-            if (Controller.healthStatusLogg.get(healthResult.getSource()) != null){
-                Controller.healthStatusLogg.get(healthResult.getSource()).add(healthResult);
+            if (Controller.statusLog.get(healthResult.getSource()) != null){
+                Controller.statusLog.get(healthResult.getSource()).add(healthResult);
             }else{
                 LinkedList<Event> newList = new LinkedList<>();
                 newList.add(healthResult);
-                Controller.healthStatusLogg.put(healthResult.getSource(), newList);
+                Controller.statusLog.put(healthResult.getSource(), newList);
             }
         }
+    }
+    private boolean containsHealthyStatus(Event event) {
+         final String APLICATION_HEALTHY = "APPLICATION_HEALTHY";
+        if (event != null)
+            if (event.getData()!=null){
+                for (int i = 0; i <event.getData().size() ; i++) {
+                    if (event.getData().get(i).toString().contains(APLICATION_HEALTHY))
+                        return true;
+                }
+            }
+        return false;
+
     }
 }

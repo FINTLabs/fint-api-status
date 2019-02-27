@@ -1,102 +1,67 @@
+/*
+The application checks the status of the servers in the application.properties list. The application logs
+two different lists. One that collects all the statuses that the servers have had and one that keeps tracks over
+the last healthy status check.
+ */
 package no.fint.fintapistatus.controller;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-
 import no.fint.event.model.Event;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping(value = "/api")
 public class Controller {
     @Autowired
-    private PeopleService peopleService;
-    @Autowired
     private HealthService healthService;
-    private static final String APLICATION_HEALTHY = "APPLICATION_HEALTHY";
+    @Autowired
+    private Environment env;
     //Finnes det noen ConcurrentList? Eller er det greit siden add er O(1)?
-    static ConcurrentHashMap<String,LinkedList<Event>> healthStatusLogg= new ConcurrentHashMap<>();
-    static ConcurrentHashMap<String,Event> lastHealthyStatus = new ConcurrentHashMap<>();
-    @GetMapping(value = "/people")
-    public List<People> getPeople() {
-        return peopleService.getAllPeople();
-    }
+    static ConcurrentHashMap<String,LinkedList<Event>> statusLog = new ConcurrentHashMap<>();//Collects all check status
+    static ConcurrentHashMap<String,Event> lastHealthyStatus = new ConcurrentHashMap<>();//Collects the last healthy status
 
-    @GetMapping(value = "/test/{var}")
-    public String getVar(@PathVariable final String var) {
-        return var;
+    @GetMapping(value = "/healthcheck/all") // Check the health of all the servers
+    public String getHealthCheckStatusAll() {
+        TreeMap<String, List<String>> domainMap = new TreeMap<>();
+        List<String> domene1Underdomener =
+                Arrays.asList(env.getProperty("DOMAIN1ENTRIES").split(","));
+        List<String> domene2Underdomener =
+                Arrays.asList(env.getProperty("DOMAIN2ENTRIES").split(","));
+        domainMap.put(env.getProperty("TOP_DOMAIN1"), domene1Underdomener);
+        domainMap.put(env.getProperty("TOP_DOMAIN2"), domene2Underdomener);
+        healthService.healthCheckAll(domainMap);
+        return "suksess!";
     }
-
-    @GetMapping(value = "/checkstatus/{typeOfCheck}")
-    public String checkStatus(@PathVariable final String typeOfCheck){
+    @GetMapping(value = "/healthcheckwithdomene/{domain}/{nextdomain}")//Check health of a specific server.
+    public String getHealthCheckStatusByDomene(
+            @PathVariable("domain") final String domain,
+            @PathVariable("nextdomain") final String nextdomain) {
+        healthService.healthCheck(domain, nextdomain);
+        return "yes! Ferdig med getHealthCheckStatusByDomene";
+    }
+    @GetMapping(value = "/checkstatus/{typeOfLog}")
+    public String checkStatus(@PathVariable final String typeOfLog){
         StringBuilder completeStatus = new StringBuilder();
-        Map map;
-        switch (typeOfCheck) {
-            case "healthy":
-                completeStatus.append("<br>Dette er den nåværende statusen fra healthStatusLogg i Controller:<br><br>");
-                map = healthStatusLogg;
-                break;
-            case "lastlog":
-                completeStatus.append("<br>Dette er den nåværende statusen fra lastHealthyStatus i Controller:<br><br>");
-                map = lastHealthyStatus;
-                break;
-            default:
-                completeStatus.append("Nå er det noe galt!");
-                map = null;
-                break;
+        Map map = null;
+        if ((typeOfLog.equals("healthy") || (typeOfLog.equals("lastlog")))){
+            completeStatus.append(
+                    String.format("<br><b>%s</b><br><br>", typeOfLog));
+            map = ((typeOfLog.equals("healthy"))) ? statusLog : lastHealthyStatus;
         }
         if (map!=null){
             Set<String> mainDomains = map.keySet();
             for (String mainDomain : mainDomains){
-                Event lastLogg = typeOfCheck.equals("healthy") ? healthStatusLogg.get(mainDomain).getLast()
+                Event lastLog = typeOfLog.equals("healthy") ? statusLog.get(mainDomain).getLast()
                         : lastHealthyStatus.get(mainDomain);
-                completeStatus.append("<br><br>For server: " + lastLogg.getSource() + " følgende resultat: <br>");
-                completeStatus.append(lastLogg.getData().toString() + " <br>And message: "+lastLogg.getMessage());
+                completeStatus.append(String.format("<br><br>%s: <br>%s <br>%s"
+                        ,lastLog.getSource()
+                        ,lastLog.getData().toString()
+                        ,lastLog.getMessage()));
             }
-        }
+        }else {return "Noe har gått galt!";}
         return completeStatus.toString();
-    }
-
-    @GetMapping(value = "/healthcheck/all")
-    public String getHealthCheckStatusAll() {
-        TreeMap<String, LinkedList<String>> domenekart = new TreeMap<>();
-        LinkedList<String> domene1Underdomener = new LinkedList<>();
-        LinkedList<String> domene2Underdomener = new LinkedList<>();
-        //Flytte innholdet i listene til Config-fil
-        final String domene1 = "administrasjon";
-        final String domene2 = "utdanning";
-        domene1Underdomener.add("personal");
-        domene1Underdomener.add("organisasjon");
-        domene1Underdomener.add("kodeverk");
-        domenekart.put(domene1, domene1Underdomener);
-        domene2Underdomener.add("elev");
-        domene2Underdomener.add("utdanningsprogram");
-        domene2Underdomener.add("vurdering");
-        domene2Underdomener.add("timeplan");
-        domene2Underdomener.add("kodeverk");
-        domenekart.put(domene2, domene2Underdomener);
-        healthService.healthCheckAll(domenekart);
-        return "suksess!";
-    }
-    @GetMapping(value = "/healthcheckwithdomene/{domene}/{underdomene}")
-    public String getHealthCheckStatusByDomene(
-            @PathVariable("domene") final String domene,
-            @PathVariable("underdomene") final String underdomene) {
-        healthService.healthCheck(domene, underdomene);
-        return "yes! Ferdig med getHealthCheckStatusByDomene";
-    }
-
-    static boolean containsHealthyStatus(Event event) {
-        if (event != null)
-            if (event.getData()!=null){
-                for (int i = 0; i <event.getData().size() ; i++) {
-                    if (event.getData().get(i).toString().contains(APLICATION_HEALTHY))
-                        return true;
-                }
-            }
-        return false;
-
     }
 }
