@@ -8,6 +8,8 @@ package no.fint.fintapistatus.controller;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import no.fint.event.model.Event;
+import no.fint.event.model.health.HealthStatus;
+import no.fint.fintapistatus.StatusLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.web.bind.annotation.*;
@@ -19,9 +21,6 @@ public class Controller {
     private HealthService healthService;
     @Autowired
     private Environment env;
-    //Finnes det noen ConcurrentList? Eller er det greit siden add er O(1)?
-    static ConcurrentHashMap<String,LinkedList<Event>> statusLog = new ConcurrentHashMap<>();//Collects all check status
-    static ConcurrentHashMap<String,Event> lastHealthyStatus = new ConcurrentHashMap<>();//Collects the last healthy status
 
     @GetMapping(value = "/healthcheck/all") // Check the health of all the servers
     public String getHealthCheckStatusAll() {
@@ -42,26 +41,26 @@ public class Controller {
         healthService.healthCheck(domain, nextdomain);
         return "yes! Ferdig med getHealthCheckStatusByDomene";
     }
-    @GetMapping(value = "/checkstatus/{typeOfLog}")
-    public String checkStatus(@PathVariable final String typeOfLog){
+    @GetMapping(value = "/checkstatus/last_healthy_status")
+    public String checkHealthyStatus(){
+        ConcurrentHashMap<String, StatusLog> theLog = HealthService.statusLogs;
         StringBuilder completeStatus = new StringBuilder();
-        Map map = null;
-        if ((typeOfLog.equals("healthy") || (typeOfLog.equals("lastlog")))){
-            completeStatus.append(
-                    String.format("<br><b>%s</b><br><br>", typeOfLog));
-            map = ((typeOfLog.equals("healthy"))) ? statusLog : lastHealthyStatus;
+        if (theLog.size() > 0) {
+            theLog.values().forEach(
+                    statusLog -> completeStatus.append(
+                            String.format("<br><br>%s",
+                                    statusLog.getLastHealthyStatus(healthService))));
         }
-        if (map!=null){
-            Set<String> mainDomains = map.keySet();
-            for (String mainDomain : mainDomains){
-                Event lastLog = typeOfLog.equals("healthy") ? statusLog.get(mainDomain).getLast()
-                        : lastHealthyStatus.get(mainDomain);
-                completeStatus.append(String.format("<br><br>%s: <br>%s <br>%s"
-                        ,lastLog.getSource()
-                        ,lastLog.getData().toString()
-                        ,lastLog.getMessage()));
-            }
-        }else {return "Noe har gått galt!";}
+        return completeStatus.toString();
+    }
+    @GetMapping(value = "/checkstatus/last_status")
+    public String checkLastStatus(){
+        ConcurrentHashMap<String, StatusLog> theLog = HealthService.statusLogs;
+        StringBuilder completeStatus = new StringBuilder();
+        if (theLog.size() > 0) {
+            theLog.values().forEach(
+                    statusLog -> completeStatus.append(String.format("<br><br>%s", statusLog.getLastStatus())));
+        }
         return completeStatus.toString();
     }
 }

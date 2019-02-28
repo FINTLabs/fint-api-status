@@ -4,18 +4,26 @@ import no.fint.event.model.Event;
 import no.fint.event.model.EventUtil;
 import no.fint.event.model.health.Health;
 import no.fint.event.model.health.HealthStatus;
+import no.fint.fintapistatus.StatusLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class HealthService {
-
+    public static ConcurrentHashMap<String, StatusLog> statusLogs;
     private static final String healthCheckURL = "https://play-with-fint.felleskomponent.no/utdanning/timeplan/admin/health";
+
+    public HealthService() {
+        statusLogs = new ConcurrentHashMap<>();
+    }
 
     @Value("${baseUrl:https://play-with-fint.felleskomponent.no/}")
     private String baseUrl;
@@ -26,10 +34,28 @@ public class HealthService {
 
     public void healthCheckAll(Map<String, List<String>> domenekart) {
         Set<String> domainKeys = domenekart.keySet();
+        List<Mono<Event>> liste = new ArrayList<>();
         for (String mainKey : domainKeys) {
             List<String> secondaryDomains = domenekart.get(mainKey);
             for (String secondaryDomain : secondaryDomains) {
-                 healthCheck(mainKey,secondaryDomain);
+                String nyHealthCheckURL = String
+                        .format("%s%s/%s/admin/health", baseUrl, mainKey, secondaryDomain);
+                webClient = WebClient.builder()
+                        .baseUrl(nyHealthCheckURL)
+                        .defaultHeader("x-client", "testbruker")
+                        .defaultHeader("x-org-id", "fint.health")
+                        .build();
+                liste.add(webClient.get().retrieve().bodyToMono(Event.class));
+            }
+            try {
+                Flux.merge().subscribe(event -> addHealthResultToLogg((Event)event));
+            } catch (Throwable throwable) {
+                String key = String.format("%s-%s", "Hvordan hente server???", "Hvordan hente server??");
+                Event<String> errorEvent = new Event<>();
+                errorEvent.addData(throwable.getMessage());
+                errorEvent.addData(throwable.getClass().getSimpleName());
+                errorEvent.setSource(key);
+                addHealthResultToLogg(errorEvent);
             }
         }
     }
@@ -58,19 +84,14 @@ public class HealthService {
 
     private void addHealthResultToLogg(Event healthResult) {
         if (healthResult != null){
-            if (containsHealthyStatus(healthResult)){
-                Controller.lastHealthyStatus.put(healthResult.getSource(), healthResult);
-            }
-            if (Controller.statusLog.get(healthResult.getSource()) != null){
-                Controller.statusLog.get(healthResult.getSource()).add(healthResult);
+            if (statusLogs.containsKey(healthResult.getSource())) {
+                statusLogs.get(healthResult.getSource()).add(healthResult);
             }else{
-                LinkedList<Event> newList = new LinkedList<>();
-                newList.add(healthResult);
-                Controller.statusLog.put(healthResult.getSource(), newList);
+                statusLogs.put(healthResult.getSource(), new StatusLog(healthResult));
             }
         }
     }
-    private boolean containsHealthyStatus(Event event) {
+    public boolean containsHealthyStatus(Event event) {
          final String APLICATION_HEALTHY = "APPLICATION_HEALTHY";
         if (event != null && event.getData()!=null){
             List<Health> healthData = EventUtil.convertEventData(event, Health.class);
