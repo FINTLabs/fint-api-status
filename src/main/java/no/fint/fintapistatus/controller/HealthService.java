@@ -34,7 +34,7 @@ public class HealthService {
 
     public void healthCheckAll(Map<String, List<String>> domenekart) {
         Set<String> domainKeys = domenekart.keySet();
-        List<Mono<Event>> liste = new ArrayList<>();
+        Map<String,Mono<Event>> liste = new HashMap<>(); // Må være map og spare på String for å bruke det senere i catch ved feil
         for (String mainKey : domainKeys) {
             List<String> secondaryDomains = domenekart.get(mainKey);
             for (String secondaryDomain : secondaryDomains) {
@@ -45,12 +45,15 @@ public class HealthService {
                         .defaultHeader("x-client", "testbruker")
                         .defaultHeader("x-org-id", "fint.health")
                         .build();
-                liste.add(webClient.get().retrieve().bodyToMono(Event.class));
+                liste.put(String.format("%s-%s",mainKey,secondaryDomain), webClient.get().retrieve().bodyToMono(Event.class));
             }
-            try {
-                Flux.merge().subscribe(event -> addHealthResultToLogg((Event)event));
-            } catch (Throwable throwable) {
-                String key = String.format("%s-%s", "Hvordan hente server???", "Hvordan hente server??");
+        }
+        Set<String> keys = liste.keySet();
+        for (String key : keys){
+            try{
+                addHealthResultToLogg(liste.get(key).block());
+
+            }catch (Throwable throwable){
                 Event<String> errorEvent = new Event<>();
                 errorEvent.addData(throwable.getMessage());
                 errorEvent.addData(throwable.getClass().getSimpleName());
@@ -69,17 +72,7 @@ public class HealthService {
                 .defaultHeader("x-org-id", "fint.health")
                 .build();
         ClientResponse clientResponse = webClient.get().exchange().block();
-        try{
-            Event healthResult = clientResponse.bodyToMono(Event.class).block();
-            addHealthResultToLogg(healthResult);
-        }catch (Throwable throwable){
-            String key = String.format("%s-%s",hoveddomene,underdomene);
-            Event<String> errorEvent = new Event<>();
-            errorEvent.addData(throwable.getMessage());
-            errorEvent.addData(throwable.getClass().getSimpleName());
-            errorEvent.setSource(key);
-            addHealthResultToLogg(errorEvent);
-        }
+
     }
 
     private void addHealthResultToLogg(Event healthResult) {
