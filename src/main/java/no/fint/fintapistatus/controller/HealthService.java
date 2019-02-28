@@ -33,6 +33,10 @@ public class HealthService {
 
 
     public void healthCheckAll(Map<String, List<String>> domenekart) {
+        webClient = WebClient.builder()
+                .defaultHeader("x-client", "testbruker")
+                .defaultHeader("x-org-id", "fint.health")
+                .build();
         Set<String> domainKeys = domenekart.keySet();
         Map<String,Mono<Event>> liste = new HashMap<>(); // Må være map og spare på String for å bruke det senere i catch ved feil
         for (String mainKey : domainKeys) {
@@ -40,12 +44,8 @@ public class HealthService {
             for (String secondaryDomain : secondaryDomains) {
                 String nyHealthCheckURL = String
                         .format("%s%s/%s/admin/health", baseUrl, mainKey, secondaryDomain);
-                webClient = WebClient.builder()
-                        .baseUrl(nyHealthCheckURL)
-                        .defaultHeader("x-client", "testbruker")
-                        .defaultHeader("x-org-id", "fint.health")
-                        .build();
-                liste.put(String.format("%s-%s",mainKey,secondaryDomain), webClient.get().retrieve().bodyToMono(Event.class));
+                liste.put(String.format("%s-%s",mainKey,secondaryDomain),
+                        webClient.get().uri(nyHealthCheckURL).retrieve().bodyToMono(Event.class));
             }
         }
         Set<String> keys = liste.keySet();
