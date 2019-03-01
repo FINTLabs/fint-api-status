@@ -27,8 +27,8 @@ public class StatusLog{
         this.statusLog.add(healthResult);
     }
 
-    public String getLastStatus() {
-        return skrivUtEvent(statusLog.get(statusLog.size()-1));
+    public Event getLastStatus() {
+        return statusLog.get(statusLog.size()-1);
     }
 
     public String getLastHealthyStatus(HealthService healthService) {

@@ -11,6 +11,7 @@ import no.fint.event.model.Event;
 import no.fint.event.model.health.HealthStatus;
 import no.fint.fintapistatus.StatusLog;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,18 +20,11 @@ import org.springframework.web.bind.annotation.*;
 public class Controller {
     @Autowired
     private HealthService healthService;
-    @Autowired
-    private Environment env;
+    @Value("#{${DOMAINMAP}}")
+    private Map<String, List<String>> domainMap;
 
     @GetMapping(value = "/healthcheck/all") // Check the health of all the servers
     public String getHealthCheckStatusAll() {
-        TreeMap<String, List<String>> domainMap = new TreeMap<>();
-        List<String> domene1Underdomener =
-                Arrays.asList(env.getProperty("DOMAIN1ENTRIES").split(","));
-        List<String> domene2Underdomener =
-                Arrays.asList(env.getProperty("DOMAIN2ENTRIES").split(","));
-        domainMap.put(env.getProperty("TOP_DOMAIN1"), domene1Underdomener);
-        domainMap.put(env.getProperty("TOP_DOMAIN2"), domene2Underdomener);
         healthService.healthCheckAll(domainMap);
         return "suksess!";
     }
@@ -54,13 +48,14 @@ public class Controller {
         return completeStatus.toString();
     }
     @GetMapping(value = "/checkstatus/last_status")
-    public String checkLastStatus(){
+    public Map checkLastStatus(){
         ConcurrentHashMap<String, StatusLog> theLog = HealthService.statusLogs;
+        Map<String,Event> returnMap = new TreeMap<>();
         StringBuilder completeStatus = new StringBuilder();
         if (theLog.size() > 0) {
             theLog.values().forEach(
-                    statusLog -> completeStatus.append(String.format("<br><br>%s", statusLog.getLastStatus())));
+                    statusLog -> returnMap.put(statusLog.getLastStatus().getSource(), statusLog.getLastStatus()));
         }
-        return completeStatus.toString();
+        return returnMap;
     }
 }

@@ -15,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 @Service
 public class HealthService {
@@ -38,29 +39,28 @@ public class HealthService {
                 .defaultHeader("x-org-id", "fint.health")
                 .build();
         Set<String> domainKeys = domenekart.keySet();
-        Map<String,Mono<Event>> liste = new HashMap<>(); // Må være map og spare på String for å bruke det senere i catch ved feil
+        List<Mono<Event>> listMono = new ArrayList<>();
         for (String mainKey : domainKeys) {
             List<String> secondaryDomains = domenekart.get(mainKey);
             for (String secondaryDomain : secondaryDomains) {
                 String nyHealthCheckURL = String
                         .format("%s%s/%s/admin/health", baseUrl, mainKey, secondaryDomain);
-                liste.put(String.format("%s-%s",mainKey,secondaryDomain),
-                        webClient.get().uri(nyHealthCheckURL).retrieve().bodyToMono(Event.class));
+                listMono.add(webClient.get().uri(nyHealthCheckURL).retrieve().bodyToMono(Event.class));
             }
         }
-        Set<String> keys = liste.keySet();
-        for (String key : keys){
-            try{
-                addHealthResultToLogg(liste.get(key).block());
+        //TODO Her kommer problemet, med at det kastest unntak i opprettelsen av eventet, tror jeg.
+        Flux.merge(listMono).subscribe(event -> addHealthResultToLogg(event));
+        /*try {
+                    addHealthResultToLogg(mono.block());
 
-            }catch (Throwable throwable){
-                Event<String> errorEvent = new Event<>();
-                errorEvent.addData(throwable.getMessage());
-                errorEvent.addData(throwable.getClass().getSimpleName());
-                errorEvent.setSource(key);
-                addHealthResultToLogg(errorEvent);
-            }
-        }
+                } catch (Throwable throwable) {
+                    String key = String.format("%s-%s",mainKey,secondaryDomain);
+                    Event<String> errorEvent = new Event<>();
+                    errorEvent.addData(throwable.getMessage());
+                    errorEvent.addData(throwable.getClass().getSimpleName());
+                    errorEvent.setSource(key);
+                    addHealthResultToLogg(errorEvent);
+                } */
     }
 
     public void healthCheck(String hoveddomene, String underdomene) {
