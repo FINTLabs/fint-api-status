@@ -15,7 +15,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 
 @Service
 public class HealthService {
@@ -33,46 +32,40 @@ public class HealthService {
     private WebClient webClient;
 
 
-    public void healthCheckAll(Map<String, List<String>> domenekart) {
+    public void healthCheckAll(Map<String, List<String>> domainMap) {
         webClient = WebClient.builder()
                 .defaultHeader("x-client", "testbruker")
                 .defaultHeader("x-org-id", "fint.health")
                 .build();
-        Set<String> domainKeys = domenekart.keySet();
-        List<Mono<Event>> listMono = new ArrayList<>();
-        for (String mainKey : domainKeys) {
-            List<String> secondaryDomains = domenekart.get(mainKey);
-            for (String secondaryDomain : secondaryDomains) {
-                String nyHealthCheckURL = String
-                        .format("%s%s/%s/admin/health", baseUrl, mainKey, secondaryDomain);
-                listMono.add(webClient.get().uri(nyHealthCheckURL).retrieve().bodyToMono(Event.class));
+        Set<String> domainKeys = domainMap.keySet();
+        List<Mono<Event>> monoList = new ArrayList<>();
+        domainMap.keySet().forEach(key -> domainMap.get(key).forEach(secondkey ->
+        monoList.add(webClient.get().uri(String
+                .format("%s%s/%s/admin/health", baseUrl, key, secondkey)).retrieve().bodyToMono(Event.class))));
+        for (Mono<Event> mono : monoList){
+            try {
+                addHealthResultToLogg(mono.block());
+
+            } catch (Throwable throwable) {
+                String key = String.format("%s-%s","MAINDOMAIN","SECONDDOMAIN");
+                Event<String> errorEvent = new Event<>();
+                errorEvent.addData(throwable.getMessage());
+                errorEvent.addData(throwable.getClass().getSimpleName());
+                errorEvent.setSource(key);
+                addHealthResultToLogg(errorEvent);
             }
         }
-        //TODO Her kommer problemet, med at det kastest unntak i opprettelsen av eventet, tror jeg.
-        Flux.merge(listMono).subscribe(event -> addHealthResultToLogg(event));
-        /*try {
-                    addHealthResultToLogg(mono.block());
-
-                } catch (Throwable throwable) {
-                    String key = String.format("%s-%s",mainKey,secondaryDomain);
-                    Event<String> errorEvent = new Event<>();
-                    errorEvent.addData(throwable.getMessage());
-                    errorEvent.addData(throwable.getClass().getSimpleName());
-                    errorEvent.setSource(key);
-                    addHealthResultToLogg(errorEvent);
-                } */
     }
 
-    public void healthCheck(String hoveddomene, String underdomene) {
+    public Mono<Event> healthCheck(String domain, String secondDomain) {
         String nyHealthCheckURL = String
-                .format("%s%s/%s/admin/health", baseUrl, hoveddomene, underdomene);
+                .format("%s%s/%s/admin/health", baseUrl, domain, secondDomain);
         webClient = WebClient.builder()
                 .baseUrl(nyHealthCheckURL)
                 .defaultHeader("x-client", "testbruker")
                 .defaultHeader("x-org-id", "fint.health")
                 .build();
-        ClientResponse clientResponse = webClient.get().exchange().block();
-
+        return webClient.get().retrieve().bodyToMono(Event.class);
     }
 
     private void addHealthResultToLogg(Event healthResult) {
@@ -94,5 +87,27 @@ public class HealthService {
             return healthyStatus.isPresent();
             }
         return false;
+    }
+
+    public Map HealthyStatus() {
+        ConcurrentHashMap<String, StatusLog> theLog = statusLogs;
+        Map<String, Event> map = new HashMap<>();
+        if (theLog.size() > 0) {
+            theLog.values().forEach(statusLog -> map.put(
+                    statusLog.getSource(),
+                    statusLog.getLastHealthyStatus(this)));
+        }
+        return map;
+    }
+
+    public Map lastStatus() {
+        Map<String, Event> map = new HashMap<>();
+        ConcurrentHashMap<String, StatusLog> theLog = HealthService.statusLogs;
+        if (theLog.size() > 0) {
+            theLog.values().forEach(statusLog -> map.put(
+                    statusLog.getSource(),
+                    statusLog.getLastStatus()));
+        }
+        return map;
     }
 }

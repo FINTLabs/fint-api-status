@@ -6,13 +6,8 @@ the last healthy status check.
 package no.fint.fintapistatus.controller;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import no.fint.event.model.Event;
-import no.fint.event.model.health.HealthStatus;
-import no.fint.fintapistatus.StatusLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -36,26 +31,11 @@ public class Controller {
         return "yes! Ferdig med getHealthCheckStatusByDomene";
     }
     @GetMapping(value = "/checkstatus/last_healthy_status")
-    public String checkHealthyStatus(){
-        ConcurrentHashMap<String, StatusLog> theLog = HealthService.statusLogs;
-        StringBuilder completeStatus = new StringBuilder();
-        if (theLog.size() > 0) {
-            theLog.values().forEach(
-                    statusLog -> completeStatus.append(
-                            String.format("<br><br>%s",
-                                    statusLog.getLastHealthyStatus(healthService))));
-        }
-        return completeStatus.toString();
+    public Map checkHealthyStatus(){
+        return healthService.HealthyStatus();
     }
     @GetMapping(value = "/checkstatus/last_status")
     public Map checkLastStatus(){
-        ConcurrentHashMap<String, StatusLog> theLog = HealthService.statusLogs;
-        Map<String,Event> returnMap = new TreeMap<>();
-        StringBuilder completeStatus = new StringBuilder();
-        if (theLog.size() > 0) {
-            theLog.values().forEach(
-                    statusLog -> returnMap.put(statusLog.getLastStatus().getSource(), statusLog.getLastStatus()));
-        }
-        return returnMap;
+        return healthService.lastStatus();
     }
 }
