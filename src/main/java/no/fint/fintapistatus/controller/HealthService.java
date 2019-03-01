@@ -15,7 +15,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 
 @Service
 public class HealthService {
@@ -45,11 +44,25 @@ public class HealthService {
             for (String secondaryDomain : secondaryDomains) {
                 String nyHealthCheckURL = String
                         .format("%s%s/%s/admin/health", baseUrl, mainKey, secondaryDomain);
-                listMono.add(webClient.get().uri(nyHealthCheckURL).retrieve().bodyToMono(Event.class));
+                listMono.add(webClient
+                        .get()
+                        .uri(nyHealthCheckURL)
+                        .retrieve()
+                        .bodyToMono(Event.class)
+                        .onErrorResume(e -> {
+                            String key = String.format("%s-%s", mainKey, secondaryDomain);
+                            Event<String> errorEvent = new Event<>();
+                            errorEvent.addData(e.getMessage());
+                            errorEvent.addData(e.getClass().getSimpleName());
+                            errorEvent.setSource(key);
+                            return Mono.just(errorEvent);
+                        })
+                        .doOnSuccess(this::addHealthResultToLogg)
+                );
             }
         }
         //TODO Her kommer problemet, med at det kastest unntak i opprettelsen av eventet, tror jeg.
-        Flux.merge(listMono).subscribe(event -> addHealthResultToLogg(event));
+        Flux.merge(listMono).collectList().block();
         /*try {
                     addHealthResultToLogg(mono.block());
 
@@ -76,23 +89,24 @@ public class HealthService {
     }
 
     private void addHealthResultToLogg(Event healthResult) {
-        if (healthResult != null){
+        if (healthResult != null) {
             if (statusLogs.containsKey(healthResult.getSource())) {
                 statusLogs.get(healthResult.getSource()).add(healthResult);
-            }else{
+            } else {
                 statusLogs.put(healthResult.getSource(), new StatusLog(healthResult));
             }
         }
     }
+
     public boolean containsHealthyStatus(Event event) {
-         final String APLICATION_HEALTHY = "APPLICATION_HEALTHY";
-        if (event != null && event.getData()!=null){
+        final String APLICATION_HEALTHY = "APPLICATION_HEALTHY";
+        if (event != null && event.getData() != null) {
             List<Health> healthData = EventUtil.convertEventData(event, Health.class);
             Optional<Health> healthyStatus = healthData.stream().filter(health ->
                     HealthStatus.APPLICATION_HEALTHY.name().equals(health.getStatus()))
                     .findAny();
             return healthyStatus.isPresent();
-            }
+        }
         return false;
     }
 }
