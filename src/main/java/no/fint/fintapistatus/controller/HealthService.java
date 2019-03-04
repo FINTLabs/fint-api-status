@@ -62,19 +62,7 @@ public class HealthService {
                 );
             }
         }
-        //TODO Her kommer problemet, med at det kastest unntak i opprettelsen av eventet, tror jeg.
         Flux.merge(listMono).collectList().block();
-        /*try {
-                    addHealthResultToLogg(mono.block());
-
-                } catch (Throwable throwable) {
-                    String key = String.format("%s-%s",mainKey,secondaryDomain);
-                    Event<String> errorEvent = new Event<>();
-                    errorEvent.addData(throwable.getMessage());
-                    errorEvent.addData(throwable.getClass().getSimpleName());
-                    errorEvent.setSource(key);
-                    addHealthResultToLogg(errorEvent);
-                } */
     }
 
     public void healthCheck(String hoveddomene, String underdomene) {
