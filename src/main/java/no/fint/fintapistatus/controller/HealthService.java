@@ -32,63 +32,84 @@ public class HealthService {
     private WebClient webClient;
 
 
-    public void healthCheckAll(Map<String, List<String>> domainMap) {
+    public void healthCheckAll(Map<String, List<String>> domenekart) {
         webClient = WebClient.builder()
                 .defaultHeader("x-client", "testbruker")
                 .defaultHeader("x-org-id", "fint.health")
                 .build();
-        Set<String> domainKeys = domainMap.keySet();
-        List<Mono<Event>> monoList = new ArrayList<>();
-        domainMap.keySet().forEach(key -> domainMap.get(key).forEach(secondkey ->
-        monoList.add(webClient.get().uri(String
-                .format("%s%s/%s/admin/health", baseUrl, key, secondkey)).retrieve().bodyToMono(Event.class))));
-        for (Mono<Event> mono : monoList){
-            try {
-                addHealthResultToLogg(mono.block());
-
-            } catch (Throwable throwable) {
-                String key = String.format("%s-%s","MAINDOMAIN","SECONDDOMAIN");
-                Event<String> errorEvent = new Event<>();
-                errorEvent.addData(throwable.getMessage());
-                errorEvent.addData(throwable.getClass().getSimpleName());
-                errorEvent.setSource(key);
-                addHealthResultToLogg(errorEvent);
+        Set<String> domainKeys = domenekart.keySet();
+        List<Mono<Event>> listMono = new ArrayList<>();
+        for (String mainKey : domainKeys) {
+            List<String> secondaryDomains = domenekart.get(mainKey);
+            for (String secondaryDomain : secondaryDomains) {
+                String nyHealthCheckURL = String
+                        .format("%s%s/%s/admin/health", baseUrl, mainKey, secondaryDomain);
+                listMono.add(webClient
+                        .get()
+                        .uri(nyHealthCheckURL)
+                        .retrieve()
+                        .bodyToMono(Event.class)
+                        .onErrorResume(e -> {
+                            String key = String.format("%s-%s", mainKey, secondaryDomain);
+                            Event<String> errorEvent = new Event<>();
+                            errorEvent.addData(e.getMessage());
+                            errorEvent.addData(e.getClass().getSimpleName());
+                            errorEvent.setSource(key);
+                            errorEvent.setTime(System.currentTimeMillis());
+                            return Mono.just(errorEvent);
+                        })
+                        .doOnSuccess(this::addHealthResultToLogg)
+                );
             }
         }
+        //TODO Her kommer problemet, med at det kastest unntak i opprettelsen av eventet, tror jeg.
+        Flux.merge(listMono).collectList().block();
+        /*try {
+                    addHealthResultToLogg(mono.block());
+
+                } catch (Throwable throwable) {
+                    String key = String.format("%s-%s",mainKey,secondaryDomain);
+                    Event<String> errorEvent = new Event<>();
+                    errorEvent.addData(throwable.getMessage());
+                    errorEvent.addData(throwable.getClass().getSimpleName());
+                    errorEvent.setSource(key);
+                    addHealthResultToLogg(errorEvent);
+                } */
     }
 
-    public Mono<Event> healthCheck(String domain, String secondDomain) {
+    public void healthCheck(String hoveddomene, String underdomene) {
         String nyHealthCheckURL = String
-                .format("%s%s/%s/admin/health", baseUrl, domain, secondDomain);
+                .format("%s%s/%s/admin/health", baseUrl, hoveddomene, underdomene);
         webClient = WebClient.builder()
                 .baseUrl(nyHealthCheckURL)
                 .defaultHeader("x-client", "testbruker")
                 .defaultHeader("x-org-id", "fint.health")
                 .build();
-        return webClient.get().retrieve().bodyToMono(Event.class);
+        ClientResponse clientResponse = webClient.get().exchange().block();
+
     }
 
     private void addHealthResultToLogg(Event healthResult) {
-        if (healthResult != null){
+        if (healthResult != null) {
             if (statusLogs.containsKey(healthResult.getSource())) {
                 statusLogs.get(healthResult.getSource()).add(healthResult);
-            }else{
+            } else {
                 statusLogs.put(healthResult.getSource(), new StatusLog(healthResult));
             }
         }
     }
+
     public boolean containsHealthyStatus(Event event) {
-         final String APLICATION_HEALTHY = "APPLICATION_HEALTHY";
-        if (event != null && event.getData()!=null){
+        final String APLICATION_HEALTHY = "APPLICATION_HEALTHY";
+        if (event != null && event.getData() != null) {
             List<Health> healthData = EventUtil.convertEventData(event, Health.class);
             Optional<Health> healthyStatus = healthData.stream().filter(health ->
                     HealthStatus.APPLICATION_HEALTHY.name().equals(health.getStatus()))
                     .findAny();
             return healthyStatus.isPresent();
-            }
+        }
         return false;
     }
-
     public Map HealthyStatus() {
         ConcurrentHashMap<String, StatusLog> theLog = statusLogs;
         Map<String, Event> map = new HashMap<>();
