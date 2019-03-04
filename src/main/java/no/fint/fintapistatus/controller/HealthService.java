@@ -119,4 +119,11 @@ public class HealthService {
         }
         return map;
     }
+
+    public void printExample() {
+        if(!statusLogs.isEmpty()){
+            StatusLog statusLog = statusLogs.get("administrasjon-personal");
+            statusLog.skrivUt();
+        }
+    }
 }

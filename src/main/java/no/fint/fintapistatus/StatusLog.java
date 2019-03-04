@@ -57,4 +57,12 @@ public class StatusLog {
     public String getSource() {
         return (!this.statusLog.isEmpty()) ? statusLog.getFirst().getSource() : "Ingen Source";
     }
+
+    public void skrivUt() {
+        int teller = 1;
+        for (Event event : this.statusLog){
+            System.out.println("\nNr."+ teller +" - Source: " + event.getSource() +  "\nData: " + event.getData());
+            teller++;
+        }
+    }
 }

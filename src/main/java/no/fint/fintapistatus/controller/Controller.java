@@ -8,9 +8,12 @@ package no.fint.fintapistatus.controller;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@EnableScheduling
 @RequestMapping(value = "/api")
 public class Controller {
     @Autowired
@@ -18,7 +21,7 @@ public class Controller {
     @Value("#{${DOMAINMAP}}")
     private Map<String, List<String>> domainMap;
 
-    @GetMapping(value = "/healthcheck/all") // Check the health of all the servers
+    @Scheduled(fixedRate = 180000)// Check the health of all the servers
     public String getHealthCheckStatusAll() {
         healthService.healthCheckAll(domainMap);
         return "suksess!";
@@ -37,5 +40,9 @@ public class Controller {
     @GetMapping(value = "/checkstatus/last_status")
     public Map checkLastStatus(){
         return healthService.lastStatus();
+    }
+    @Scheduled(fixedRate = 30000)
+    public void printExample(){
+        healthService.printExample();
     }
 }
