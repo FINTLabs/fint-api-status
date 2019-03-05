@@ -19,7 +19,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class HealthService {
     public static ConcurrentHashMap<String, StatusLog> statusLogs;
-    private static final String healthCheckURL = "https://play-with-fint.felleskomponent.no/utdanning/timeplan/admin/health";
 
     public HealthService() {
         statusLogs = new ConcurrentHashMap<>();
@@ -31,51 +30,38 @@ public class HealthService {
     @Autowired
     private WebClient webClient;
 
+    @Autowired
+    private ComponentService componentService;
 
-    public void healthCheckAll(Map<String, List<String>> domenekart) {
+    public void healthCheckAll() {
+        List<Mono<Event>> listMono = new ArrayList<>();
+        componentService.getComponents().forEach(componentConfiguration ->
+                listMono.add(healthCheck(componentConfiguration.path)));
+        Flux.merge(listMono).collectList().block();
+    }
+
+    public Mono<Event> healthCheck(String path) {
         webClient = WebClient.builder()
                 .defaultHeader("x-client", "testbruker")
                 .defaultHeader("x-org-id", "health.fintlabs.no")
                 .build();
-        Set<String> domainKeys = domenekart.keySet();
-        List<Mono<Event>> listMono = new ArrayList<>();
-        for (String mainKey : domainKeys) {
-            List<String> secondaryDomains = domenekart.get(mainKey);
-            for (String secondaryDomain : secondaryDomains) {
-                String nyHealthCheckURL = String
-                        .format("%s%s/%s/admin/health", baseUrl, mainKey, secondaryDomain);
-                System.out.println(nyHealthCheckURL);
-                listMono.add(webClient
-                        .get()
-                        .uri(nyHealthCheckURL)
-                        .retrieve()
-                        .bodyToMono(Event.class)
-                        .onErrorResume(e -> {
-                            String key = String.format("%s-%s", mainKey, secondaryDomain);
-                            Event<String> errorEvent = new Event<>();
-                            errorEvent.addData(e.getMessage());
-                            errorEvent.addData(e.getClass().getSimpleName());
-                            errorEvent.setSource(key);
-                            errorEvent.setTime(System.currentTimeMillis());
-                            return Mono.just(errorEvent);
-                        })
-                        .doOnSuccess(healthResult -> addHealthResultToLogg(healthResult))
-                );
-            }
-        }
-        Flux.merge(listMono).collectList().block();
-    }
-
-    public void healthCheck(String hoveddomene, String underdomene) {
         String nyHealthCheckURL = String
-                .format("%s%s/%s/admin/health", baseUrl, hoveddomene, underdomene);
-        webClient = WebClient.builder()
-                .baseUrl(nyHealthCheckURL)
-                .defaultHeader("x-client", "testbruker")
-                .defaultHeader("x-org-id", "fint.health")
-                .build();
-        ClientResponse clientResponse = webClient.get().exchange().block();
-
+                .format("%s%s/admin/health", baseUrl, path);
+        return webClient
+                .get()
+                .uri(nyHealthCheckURL)
+                .retrieve()
+                .bodyToMono(Event.class)
+                .onErrorResume(e -> {
+                    String key = path;
+                    Event<String> errorEvent = new Event<>();
+                    errorEvent.addData(e.getMessage());
+                    errorEvent.addData(e.getClass().getSimpleName());
+                    errorEvent.setSource(key);
+                    errorEvent.setTime(System.currentTimeMillis());
+                    return Mono.just(errorEvent);
+                })
+                .doOnSuccess(this::addHealthResultToLogg);
     }
 
     private void addHealthResultToLogg(Event healthResult) {
@@ -99,6 +85,7 @@ public class HealthService {
         }
         return false;
     }
+
     public Map HealthyStatus() {
         ConcurrentHashMap<String, StatusLog> theLog = statusLogs;
         Map<String, Event> map = new HashMap<>();
@@ -122,8 +109,8 @@ public class HealthService {
     }
 
     public void printExample() {
-        if(!statusLogs.isEmpty()){
-            StatusLog statusLog = statusLogs.get("administrasjon-personal");
+        if (!statusLogs.isEmpty()) {
+            StatusLog statusLog = statusLogs.get("utdanning-vurdering");
             statusLog.skrivUt();
         }
     }
