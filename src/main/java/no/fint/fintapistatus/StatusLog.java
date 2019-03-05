@@ -24,6 +24,7 @@ public class StatusLog {
         statusLog.add(healthResult);
     }
 
+    //TODO: Her er det en feil. Data kan vel inneholde timestamps, og da vil ikke de to siste eventene noen gang være like.
     public void add(Event healthResult) {
         statusLog.add(healthResult); // Allways keep the last status checked.
         if (statusLog.size() >= 3) { // List must contain atleast 3 events before we decide to remove any.

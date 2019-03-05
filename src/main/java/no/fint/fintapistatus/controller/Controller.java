@@ -22,17 +22,17 @@ public class Controller {
     private Map<String, List<String>> domainMap;
 
     @Scheduled(fixedRate = 180000)// Check the health of all the servers
-    public String getHealthCheckStatusAll() {
+    public void getHealthCheckStatusAll() {
         healthService.healthCheckAll(domainMap);
-        return "suksess!";
     }
+    /*
     @GetMapping(value = "/healthcheckwithdomene/{domain}/{nextdomain}")//Check health of a specific server.
     public String getHealthCheckStatusByDomene(
             @PathVariable("domain") final String domain,
             @PathVariable("nextdomain") final String nextdomain) {
         healthService.healthCheck(domain, nextdomain);
         return "yes! Ferdig med getHealthCheckStatusByDomene";
-    }
+    }*/
     @GetMapping(value = "/checkstatus/last_healthy_status")
     public Map checkHealthyStatus(){
         return healthService.HealthyStatus();

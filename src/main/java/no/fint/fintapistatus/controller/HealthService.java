@@ -35,7 +35,7 @@ public class HealthService {
     public void healthCheckAll(Map<String, List<String>> domenekart) {
         webClient = WebClient.builder()
                 .defaultHeader("x-client", "testbruker")
-                .defaultHeader("x-org-id", "fint.health")
+                .defaultHeader("x-org-id", "health.fintlabs.no")
                 .build();
         Set<String> domainKeys = domenekart.keySet();
         List<Mono<Event>> listMono = new ArrayList<>();
@@ -44,6 +44,7 @@ public class HealthService {
             for (String secondaryDomain : secondaryDomains) {
                 String nyHealthCheckURL = String
                         .format("%s%s/%s/admin/health", baseUrl, mainKey, secondaryDomain);
+                System.out.println(nyHealthCheckURL);
                 listMono.add(webClient
                         .get()
                         .uri(nyHealthCheckURL)
@@ -58,7 +59,7 @@ public class HealthService {
                             errorEvent.setTime(System.currentTimeMillis());
                             return Mono.just(errorEvent);
                         })
-                        .doOnSuccess(this::addHealthResultToLogg)
+                        .doOnSuccess(healthResult -> addHealthResultToLogg(healthResult))
                 );
             }
         }
