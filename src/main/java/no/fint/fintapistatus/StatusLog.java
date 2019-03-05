@@ -1,7 +1,7 @@
 package no.fint.fintapistatus;
 
 import no.fint.event.model.Event;
-import no.fint.fintapistatus.controller.HealthService;
+import no.fint.fintapistatus.service.HealthService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;

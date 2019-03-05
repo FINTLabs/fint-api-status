@@ -1,5 +1,6 @@
 package no.fint.fintapistatus.controller
 
+import no.fint.fintapistatus.service.HealthService
 import org.springframework.web.reactive.function.client.WebClient
 
 import okhttp3.mockwebserver.MockResponse
@@ -22,7 +23,7 @@ class HealthServiceSpec extends Specification {
 
     then:
     request.path == '/administrasjon/personal/admin/health'
-    result.status =
-    result.corrID
+    //result.status =
+    //result.corrID
   }
 }
