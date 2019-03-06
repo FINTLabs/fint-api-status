@@ -4,11 +4,11 @@ import no.fint.event.model.Event;
 import no.fint.event.model.EventUtil;
 import no.fint.event.model.health.Health;
 import no.fint.event.model.health.HealthStatus;
-import no.fint.fintapistatus.StatusLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -17,12 +17,9 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@EnableScheduling
 public class HealthService {
-    public static ConcurrentHashMap<String, StatusLog> statusLogs;
-
-    public HealthService() {
-        statusLogs = new ConcurrentHashMap<>();
-    }
+    public static ConcurrentHashMap<String, Event> statusMap;
 
     @Value("${baseUrl:https://play-with-fint.felleskomponent.no/}")
     private String baseUrl;
@@ -33,6 +30,11 @@ public class HealthService {
     @Autowired
     private ComponentService componentService;
 
+    public HealthService() {
+        statusMap = new ConcurrentHashMap<>();
+    }
+
+    @Scheduled(fixedRateString ="${servercheck.time}", initialDelay=1000)
     public void healthCheckAll() {
         List<Mono<Event>> listMono = new ArrayList<>();
         componentService.getComponents().forEach(componentConfiguration ->
@@ -53,65 +55,17 @@ public class HealthService {
                 .retrieve()
                 .bodyToMono(Event.class)
                 .onErrorResume(e -> {
-                    String key = path;
                     Event<String> errorEvent = new Event<>();
                     errorEvent.addData(e.getMessage());
                     errorEvent.addData(e.getClass().getSimpleName());
-                    errorEvent.setSource(key);
+                    errorEvent.setSource(path);
                     errorEvent.setTime(System.currentTimeMillis());
                     return Mono.just(errorEvent);
                 })
-                .doOnSuccess(this::addHealthResultToLogg);
-    }
-
-    private void addHealthResultToLogg(Event healthResult) {
-        if (healthResult != null) {
-            if (statusLogs.containsKey(healthResult.getSource())) {
-                statusLogs.get(healthResult.getSource()).add(healthResult);
-            } else {
-                statusLogs.put(healthResult.getSource(), new StatusLog(healthResult));
-            }
-        }
-    }
-
-    public boolean containsHealthyStatus(Event event) {
-        final String APLICATION_HEALTHY = "APPLICATION_HEALTHY";
-        if (event != null && event.getData() != null) {
-            List<Health> healthData = EventUtil.convertEventData(event, Health.class);
-            Optional<Health> healthyStatus = healthData.stream().filter(health ->
-                    HealthStatus.APPLICATION_HEALTHY.name().equals(health.getStatus()))
-                    .findAny();
-            return healthyStatus.isPresent();
-        }
-        return false;
-    }
-
-    public Map HealthyStatus() {
-        ConcurrentHashMap<String, StatusLog> theLog = statusLogs;
-        Map<String, Event> map = new HashMap<>();
-        if (theLog.size() > 0) {
-            theLog.values().forEach(statusLog -> map.put(
-                    statusLog.getSource(),
-                    statusLog.getLastHealthyStatus(this)));
-        }
-        return map;
+                .doOnSuccess(healthResult -> statusMap.put(path,healthResult));
     }
 
     public Map lastStatus() {
-        Map<String, Event> map = new HashMap<>();
-        ConcurrentHashMap<String, StatusLog> theLog = HealthService.statusLogs;
-        if (theLog.size() > 0) {
-            theLog.values().forEach(statusLog -> map.put(
-                    statusLog.getSource(),
-                    statusLog.getLastStatus()));
-        }
-        return map;
-    }
-
-    public void printExample() {
-        if (!statusLogs.isEmpty()) {
-            StatusLog statusLog = statusLogs.get("utdanning-vurdering");
-            statusLog.skrivUt();
-        }
+        return statusMap;
     }
 }

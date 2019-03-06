@@ -21,8 +21,8 @@ public class Controller {
     @Autowired
     private HealthService healthService;
 
-    @Value("#{${DOMAINMAP}}")
-    private Map<String, List<String>> domainMap;
+    /*@Value("#{${DOMAINMAP}}")
+    private Map<String, List<String>> domainMap;*/
 
     /*
     @Scheduled(fixedRate = 180000)// Check the health of all the servers
