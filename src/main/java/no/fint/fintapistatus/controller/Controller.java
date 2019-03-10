@@ -5,50 +5,32 @@ the last healthy status check.
  */
 package no.fint.fintapistatus.controller;
 
-import java.util.*;
-
 import no.fint.fintapistatus.service.HealthService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @EnableScheduling
 @RequestMapping(value = "/api")
-public class Controller {
+class Controller {
 
     @Autowired
     private HealthService healthService;
 
-    /*@Value("#{${DOMAINMAP}}")
-    private Map<String, List<String>> domainMap;*/
-
-    /*
-    @Scheduled(fixedRate = 180000)// Check the health of all the servers
-    public void getHealthCheckStatusAll() {
-        healthService.healthCheckAll(domainMap);
-    }
-    */
-
-    /*
-    @GetMapping(value = "/healthcheckwithdomene/{domain}/{nextdomain}")//Check health of a specific server.
-    public String getHealthCheckStatusByDomene(
-            @PathVariable("domain") final String domain,
-            @PathVariable("nextdomain") final String nextdomain) {
-        healthService.healthCheck(domain, nextdomain);
-        return "yes! Ferdig med getHealthCheckStatusByDomene";
+    /* Here you can check a specific servers path by adding it to the Post data path variable.
+    @PostMapping(value = "/healthcheck")//Check health of a specific server.
+    private ResponseEntity healthCheckByDomene(@RequestBody String path) {
+        healthService.healthCheck(path);
+        return ResponseEntity.ok(HttpStatus.OK);
     }*/
 
-    /*
-    @GetMapping(value = "/checkstatus/last_healthy_status")
-    public Map checkHealthyStatus() {
-        return healthService.HealthyStatus();
-    }
-    */
-
     @GetMapping(value = "/health")
-    public Map checkLastStatus() {
-        return healthService.lastStatus();
+    private Map latestStatus() {
+        return healthService.getStatus();
     }
 }

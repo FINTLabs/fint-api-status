@@ -47,6 +47,6 @@ class HealthServiceSpec extends Specification {
     healthService.healthCheckAll()
 
     then:
-    healthService.statusMap
+    healthService.completeStatusMap
   }
 }
