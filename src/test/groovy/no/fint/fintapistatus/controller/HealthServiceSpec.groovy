@@ -1,52 +1,57 @@
 package no.fint.fintapistatus.controller
 
+import no.fint.event.model.Status
+import no.fint.event.model.health.HealthStatus
+import no.fint.fintapistatus.model.ComponentConfiguration
 import no.fint.fintapistatus.service.ComponentService
 import no.fint.fintapistatus.service.HealthService
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import org.springframework.core.io.ClassPathResource
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
 import spock.lang.Specification
 
 class HealthServiceSpec extends Specification {
 
-  private def mockWebServer = new MockWebServer()
-  private def healthService = new HealthService(baseUrl: mockWebServer.url('/').toString(),
-      webClient: WebClient.create())
+    private def mockWebServer = new MockWebServer()
+    private def componentService = Mock(ComponentService) {
+        getComponents() >> [new ComponentConfiguration(
+                name: "administrasjon-personal",
+                port: 0,
+                path: "/administrasjon/personal",
+                assetPath: "/api/components/assets/administrasjon/personal")]
+}
+    private def healthService = new HealthService(baseUrl: mockWebServer.url('/').toString(),
+            webClient: WebClient.create())
 
-  def "Health check given valid domains return application status"() {
-    given:
-    mockWebServer.enqueue(new MockResponse().setBody('{"status": "APPLICATION_HEALTHY"}'))
 
-    when:
-    def result = healthService.healthCheck('administrasjon', 'personal')
-    def request = mockWebServer.takeRequest()
+    def "Check single component and return Mono<Event>-object"() {
+        given:
+        def healthService = new HealthService(baseUrl: "https://play-with-fint.felleskomponent.no/", webClient: WebClient.create())
 
-    then:
-    request.path == '/administrasjon/personal/admin/health'
-    //result.status =
-    //result.corrID
-  }
-  def "Check single component and return Mono<Event>-object"() {
-    given:
-    def healthService = new HealthService(baseUrl: "https://play-with-fint.felleskomponent.no/", webClient: WebClient.create())
+        when:
+        def healthCheck = healthService.healthCheck("administrasjon/personal")
 
-    when:
-    def healthCheck = healthService.healthCheck("administrasjon/personal")
+        then:
+        healthCheck
+    }
 
-    then:
-    healthCheck
-  }
-  def "Run healthcheck on all components"() {
-    given:
-    def healthService = new HealthService(baseUrl: "https://play-with-fint.felleskomponent.no/",
-            webClient: WebClient.create(),
-            componentService: new ComponentService(webClient: WebClient.create(),
-                    componentConfigurationUri: "https://admin.fintlabs.no/api/components/configurations"))
+    def "Run healthcheck on all components"() {
+        given:
+        def healthService = new HealthService(baseUrl: mockWebServer.url('/').toString(),
+                componentService: componentService)
+        healthService.init()
+        def jsonResponse = new ClassPathResource("healthcheckSuccess.json").getFile().text
+        mockWebServer.enqueue(new MockResponse().addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).setBody(jsonResponse))
 
-    when:
-    healthService.healthCheckAll()
+        when:
+        healthService.healthCheckAll()
 
-    then:
-    healthService.completeStatusMap
-  }
+        then:
+        healthService.status.size() == 1
+        healthService.status.values()[0].data[0]["status"] == HealthStatus.APPLICATION_HEALTHY.name()
+        healthService.status.values()[0].data[1]["status"] == HealthStatus.RECEIVED_IN_CONSUMER_FROM_PROVIDER.name()
+    }
 }

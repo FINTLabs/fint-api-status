@@ -1,8 +1,11 @@
 package no.fint.fintapistatus.model;
 
+import lombok.Data;
+
+@Data
 public class ComponentConfiguration {
-    public String name;
-    public Integer port;
-    public String path;
-    public String assetPath;
+    private String name;
+    private Integer port;
+    private String path;
+    private String assetPath;
 }

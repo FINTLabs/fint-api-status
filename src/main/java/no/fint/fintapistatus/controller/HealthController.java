@@ -17,14 +17,14 @@ import java.util.Map;
 @RestController
 @EnableScheduling
 @RequestMapping(value = "/api")
-class Controller {
+class HealthController {
 
     @Autowired
     private HealthService healthService;
 
     /* Here you can check a specific servers path by adding it to the Post data path variable.
     @PostMapping(value = "/healthcheck")//Check health of a specific server.
-    private ResponseEntity healthCheckByDomene(@RequestBody String path) {
+    private ResponseEntity healthCheckByDomain(@RequestBody String path) {
         healthService.healthCheck(path);
         return ResponseEntity.ok(HttpStatus.OK);
     }*/

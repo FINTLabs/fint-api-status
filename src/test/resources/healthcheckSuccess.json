@@ -1,0 +1,10 @@
+{
+  "data": [
+    {
+      "status": "APPLICATION_HEALTHY"
+    },
+    {
+      "status": "RECEIVED_IN_CONSUMER_FROM_PROVIDER"
+    }
+  ]
+}

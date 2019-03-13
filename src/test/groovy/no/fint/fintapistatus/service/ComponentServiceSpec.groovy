@@ -10,10 +10,10 @@ class ComponentServiceSpec extends Specification {
     def "Get component configurations"() {
 
         given:
-        def componentSerivce = new ComponentService(componentConfigurationUri: "https://admin-beta.fintlabs.no/api/components/configurations", webClient: WebClient.create())
-
+        def componentService = new ComponentService(componentConfigurationUri: "https://admin.fintlabs.no/", webClient: WebClient.create())
+        componentService.init()
         when:
-        def components = componentSerivce.getComponents()
+        def components = componentService.getComponents()
 
         then:
         components.size() > 0

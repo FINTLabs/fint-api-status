@@ -10,49 +10,49 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Service
 @EnableScheduling
 public class HealthService {
-    public static ConcurrentHashMap<String, Event> completeStatusMap;
+    private ConcurrentHashMap<String, Event> completeStatusMap = new ConcurrentHashMap<>();
 
     @Value("${baseUrl:https://play-with-fint.felleskomponent.no/}")
     private String baseUrl;
 
-    @Autowired
     private WebClient webClient;
 
     @Autowired
     private ComponentService componentService;
 
-    public HealthService() {
-        completeStatusMap = new ConcurrentHashMap<>();
+    @PostConstruct
+    public void init(){
+        webClient = WebClient.builder()
+                .defaultHeader("x-client", "testbruker")
+                .defaultHeader("x-org-id", "health.fintlabs.no")
+                .baseUrl(baseUrl)
+                .build();
     }
-
     /*
     Check application.properties for fixedRateString.
      */
-    @Scheduled(fixedRateString = "${servercheck.time}", initialDelay = 1000)
-    public void healthCheckAll() {
-        List<Mono<Event>> listMono = new ArrayList<>();
-        componentService.getComponents()
-                .forEach(componentConfiguration ->
-                        listMono.add(healthCheck(componentConfiguration.path)));
+    @Scheduled(fixedRateString = "${servercheck.time}", initialDelay = 10000)
+        public void healthCheckAll() {
+        List<Mono<Event>> listMono = componentService.getComponents()
+                .stream().map(componentConfiguration ->
+                healthCheck(componentConfiguration.getPath())).collect(Collectors.toList());
         Flux.merge(listMono).collectList().block();
     }
 
     //Makes and returns a healthcheck based on parameter path. Returns errorEvent if Event creation fails.
-    public Mono<Event> healthCheck(String path) {
-        webClient = WebClient.builder()
-                .defaultHeader("x-client", "testbruker")
-                .defaultHeader("x-org-id", "health.fintlabs.no")
-                .build();
+    private Mono<Event> healthCheck(String path) {
         String newHealthCheckURL = String
-                .format("%s%s/admin/health", baseUrl, path);
+                .format("%s/admin/health", path);
         return webClient
                 .get()
                 .uri(newHealthCheckURL)
@@ -69,7 +69,7 @@ public class HealthService {
                 .doOnSuccess(healthResult -> completeStatusMap.put(path, healthResult));
     }
 
-    public Map getStatus() {
+    public Map<String,Event> getStatus() {
         return completeStatusMap;
     }
 }

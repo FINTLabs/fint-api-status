@@ -7,21 +7,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
+import javax.annotation.PostConstruct;
+import java.time.Duration;
 import java.util.List;
 
 @Service
 public class ComponentService {
 
-    @Value("${fint.api.status.component.configuration.uri:https://admin.fintlabs.no/api/components/configurations}")
+    @Value("${fintlabs.admin.url:https://admin.fintlabs.no/}")
     private String componentConfigurationUri;
 
-    @Autowired
     private WebClient webClient;
-
+    @PostConstruct
+    public void init(){
+        webClient = WebClient.builder().baseUrl(componentConfigurationUri).build();
+    }
     public List<ComponentConfiguration> getComponents() {
 
-        Flux<ComponentConfiguration> componentConfigurationFlux = webClient.get().uri(componentConfigurationUri).retrieve().bodyToFlux(ComponentConfiguration.class);
+        Flux<ComponentConfiguration> componentConfigurationFlux = webClient
+                .get().uri("api/components/configurations")
+                .retrieve().bodyToFlux(ComponentConfiguration.class);
 
-        return componentConfigurationFlux.collectList().block();
+        return componentConfigurationFlux.collectList().block(Duration.ofSeconds(15));
     }
 }
