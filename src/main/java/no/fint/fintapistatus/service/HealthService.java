@@ -72,4 +72,15 @@ public class HealthService {
     public Map<String,Event> getStatus() {
         return completeStatusMap;
     }
+
+    public boolean healthCheckOne(String path) {
+        try {
+            Mono<Event> monoEvent = healthCheck(path);
+            monoEvent.block();
+            return true;
+        }catch (Throwable t){
+            t.printStackTrace();
+            return false;
+        }
+    }
 }

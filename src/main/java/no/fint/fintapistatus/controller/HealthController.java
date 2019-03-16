@@ -7,11 +7,12 @@ package no.fint.fintapistatus.controller;
 
 import no.fint.fintapistatus.service.HealthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.Map;
 
 @RestController
@@ -22,12 +23,12 @@ class HealthController {
     @Autowired
     private HealthService healthService;
 
-    /* Here you can check a specific servers path by adding it to the Post data path variable.
+     // Here you can check a specific servers path by adding it to the Post data path variable.
     @PostMapping(value = "/healthcheck")//Check health of a specific server.
-    private ResponseEntity healthCheckByDomain(@RequestBody String path) {
-        healthService.healthCheck(path);
+    private ResponseEntity healthCheckByDomain(@RequestParam("path") String path) {
+        healthService.healthCheckOne(path);
         return ResponseEntity.ok(HttpStatus.OK);
-    }*/
+    } //TEST:: curl -d "path=/administrasjon/personal" -X POST localhost:8080/api/healthcheck
 
     @GetMapping(value = "/health")
     private Map latestStatus() {
