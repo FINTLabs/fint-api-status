@@ -23,12 +23,11 @@ class HealthController {
     @Autowired
     private HealthService healthService;
 
-     // Here you can check a specific servers path by adding it to the Post data path variable.
-    @PostMapping(value = "/healthcheck")//Check health of a specific server.
+    @PostMapping(value = "{domain}/{component}/healthcheck")
     private ResponseEntity healthCheckByDomain(@RequestParam("path") String path) {
         healthService.healthCheckOne(path);
         return ResponseEntity.ok(HttpStatus.OK);
-    } //TEST:: curl -d "path=/administrasjon/personal" -X POST localhost:8080/api/healthcheck
+    }
 
     @GetMapping(value = "/health")
     private Map latestStatus() {

@@ -38,9 +38,7 @@ public class HealthService {
                 .baseUrl(baseUrl)
                 .build();
     }
-    /*
-    Check application.properties for fixedRateString.
-     */
+
     @Scheduled(fixedRateString = "${servercheck.time}", initialDelay = 10000)
         public void healthCheckAll() {
         List<Mono<Event>> listMono = componentService.getComponents()
@@ -49,7 +47,6 @@ public class HealthService {
         Flux.merge(listMono).collectList().block();
     }
 
-    //Makes and returns a healthcheck based on parameter path. Returns errorEvent if Event creation fails.
     private Mono<Event> healthCheck(String path) {
         String newHealthCheckURL = String
                 .format("%s/admin/health", path);
