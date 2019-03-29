@@ -1,7 +1,6 @@
 package no.fint.fintapistatus.service;
 
 import no.fint.fintapistatus.model.ComponentConfiguration;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -18,10 +17,12 @@ public class ComponentService {
     private String componentConfigurationUri;
 
     private WebClient webClient;
+
     @PostConstruct
-    public void init(){
+    public void init() {
         webClient = WebClient.builder().baseUrl(componentConfigurationUri).build();
     }
+
     public List<ComponentConfiguration> getComponents() {
 
         Flux<ComponentConfiguration> componentConfigurationFlux = webClient

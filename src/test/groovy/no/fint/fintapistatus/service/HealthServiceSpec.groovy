@@ -1,4 +1,4 @@
-package no.fint.fintapistatus.controller
+package no.fint.fintapistatus.service
 
 
 import no.fint.event.model.health.HealthStatus

@@ -1,6 +1,7 @@
 package no.fint.fintapistatus.service;
 
 import no.fint.event.model.Event;
+import no.fint.fintapistatus.model.HealthCheckResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -11,9 +12,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -31,7 +30,7 @@ public class HealthService {
     private ComponentService componentService;
 
     @PostConstruct
-    public void init(){
+    public void init() {
         webClient = WebClient.builder()
                 .defaultHeader("x-client", "testbruker")
                 .defaultHeader("x-org-id", "health.fintlabs.no")
@@ -40,10 +39,10 @@ public class HealthService {
     }
 
     @Scheduled(fixedRateString = "${servercheck.time}", initialDelay = 10000)
-        public void healthCheckAll() {
+    public void healthCheckAll() {
         List<Mono<Event>> listMono = componentService.getComponents()
                 .stream().map(componentConfiguration ->
-                healthCheck(componentConfiguration.getPath())).collect(Collectors.toList());
+                        healthCheck(componentConfiguration.getPath())).collect(Collectors.toList());
         Flux.merge(listMono).collectList().block();
     }
 
@@ -66,8 +65,9 @@ public class HealthService {
                 .doOnSuccess(healthResult -> completeStatusMap.put(path, healthResult));
     }
 
-    public Map<String,Event> getStatus() {
-        return completeStatusMap;
+    public HealthCheckResponse getStatus() {
+        //return completeStatusMap;
+        return null;
     }
 
     public boolean healthCheckOne(String path) {
@@ -75,7 +75,7 @@ public class HealthService {
             Mono<Event> monoEvent = healthCheck(path);
             monoEvent.block();
             return true;
-        }catch (Throwable t){
+        } catch (Throwable t) {
             t.printStackTrace();
             return false;
         }

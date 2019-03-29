@@ -1,36 +1,25 @@
-/*
-The application checks the status of the servers in the application.properties list. The application logs
-two different lists. One that collects all the statuses that the servers have had and one that keeps tracks over
-the last healthy status check.
- */
 package no.fint.fintapistatus.controller;
 
+import no.fint.fintapistatus.model.HealthCheckRequest;
+import no.fint.fintapistatus.model.HealthCheckResponse;
 import no.fint.fintapistatus.service.HealthService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
-import java.util.Map;
-
 @RestController
-@EnableScheduling
-@RequestMapping(value = "/api")
+@RequestMapping("/api/healthcheck")
 class HealthController {
 
     @Autowired
     private HealthService healthService;
 
-    @PostMapping(value = "{domain}/{component}/healthcheck")
-    private ResponseEntity healthCheckByDomain(@RequestParam("path") String path) {
-        healthService.healthCheckOne(path);
-        return ResponseEntity.ok(HttpStatus.OK);
+    @PostMapping
+    private void healthCheck(@RequestBody HealthCheckRequest healthCheckRequest) {
+        healthService.healthCheckOne(healthCheckRequest.getApiBaseUrl());
     }
 
-    @GetMapping(value = "/health")
-    private Map latestStatus() {
+    @GetMapping
+    private HealthCheckResponse getLatestHealthCheck() {
         return healthService.getStatus();
     }
 }
