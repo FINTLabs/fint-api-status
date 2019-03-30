@@ -1,10 +1,10 @@
-package no.fint.fintapistatus.controller
+package no.fint.apistatus.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import no.fint.apistatus.model.HealthCheckRequest
+import no.fint.apistatus.model.HealthCheckResponse
+import no.fint.apistatus.service.HealthService
 import no.fint.event.model.Event
-import no.fint.fintapistatus.model.HealthCheckRequest
-import no.fint.fintapistatus.model.HealthCheckResponse
-import no.fint.fintapistatus.service.HealthService
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import spock.lang.Specification

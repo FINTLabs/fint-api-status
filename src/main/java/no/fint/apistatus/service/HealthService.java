@@ -1,9 +1,8 @@
-package no.fint.fintapistatus.service;
+package no.fint.apistatus.service;
 
+import no.fint.apistatus.model.HealthCheckResponse;
 import no.fint.event.model.Event;
-import no.fint.fintapistatus.model.HealthCheckResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -11,32 +10,24 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+
+import static no.fint.apistatus.ApplicationConfig.TargetService;
+import static no.fint.apistatus.ApplicationConfig.TargetService.ServiceTypes.HEALTH;
 
 @Service
 @EnableScheduling
 public class HealthService {
     private ConcurrentHashMap<String, Event> completeStatusMap = new ConcurrentHashMap<>();
 
-    @Value("${baseUrl:https://play-with-fint.felleskomponent.no/}")
-    private String baseUrl;
-
+    @Autowired
+    @TargetService(HEALTH)
     private WebClient webClient;
 
     @Autowired
     private ComponentService componentService;
-
-    @PostConstruct
-    public void init() {
-        webClient = WebClient.builder()
-                .defaultHeader("x-client", "testbruker")
-                .defaultHeader("x-org-id", "health.fintlabs.no")
-                .baseUrl(baseUrl)
-                .build();
-    }
 
     @Scheduled(fixedRateString = "${servercheck.time}", initialDelay = 10000)
     public void healthCheckAll() {

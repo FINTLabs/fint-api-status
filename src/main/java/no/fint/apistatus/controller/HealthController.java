@@ -1,8 +1,8 @@
-package no.fint.fintapistatus.controller;
+package no.fint.apistatus.controller;
 
-import no.fint.fintapistatus.model.HealthCheckRequest;
-import no.fint.fintapistatus.model.HealthCheckResponse;
-import no.fint.fintapistatus.service.HealthService;
+import no.fint.apistatus.model.HealthCheckRequest;
+import no.fint.apistatus.model.HealthCheckResponse;
+import no.fint.apistatus.service.HealthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

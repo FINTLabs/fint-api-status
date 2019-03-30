@@ -1,4 +1,4 @@
-package no.fint.fintapistatus.model;
+package no.fint.apistatus.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

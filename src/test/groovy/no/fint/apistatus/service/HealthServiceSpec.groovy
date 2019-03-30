@@ -1,10 +1,7 @@
-package no.fint.fintapistatus.service
+package no.fint.apistatus.service
 
-
+import no.fint.apistatus.model.ComponentConfiguration
 import no.fint.event.model.health.HealthStatus
-import no.fint.fintapistatus.model.ComponentConfiguration
-import no.fint.fintapistatus.service.ComponentService
-import no.fint.fintapistatus.service.HealthService
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.springframework.core.io.ClassPathResource

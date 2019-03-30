@@ -1,7 +1,6 @@
-package no.fint.fintapistatus.service
+package no.fint.apistatus.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import no.fint.fintapistatus.model.ComponentConfiguration
 import org.springframework.web.reactive.function.client.WebClient
 import spock.lang.Specification
 
