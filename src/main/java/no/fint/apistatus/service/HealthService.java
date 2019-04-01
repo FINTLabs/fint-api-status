@@ -1,9 +1,9 @@
 package no.fint.apistatus.service;
 
+import lombok.extern.slf4j.Slf4j;
 import no.fint.apistatus.model.HealthCheckResponse;
 import no.fint.event.model.Event;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -17,10 +17,10 @@ import java.util.stream.Collectors;
 import static no.fint.apistatus.ApplicationConfig.TargetService;
 import static no.fint.apistatus.ApplicationConfig.TargetService.ServiceTypes.HEALTH;
 
+@Slf4j
 @Service
-@EnableScheduling
 public class HealthService {
-    private ConcurrentHashMap<String, Event> completeStatusMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Event> completedHealthChecks = new ConcurrentHashMap<>();
 
     @Autowired
     @TargetService(HEALTH)
@@ -29,17 +29,15 @@ public class HealthService {
     @Autowired
     private ComponentService componentService;
 
-    @Scheduled(fixedRateString = "${servercheck.time}", initialDelay = 10000)
+    @Scheduled(fixedRateString = "${fint.apistatus.healthcheck-rate-ms:180000}", initialDelay = 10000)
     public void healthCheckAll() {
-        List<Mono<Event>> listMono = componentService.getComponents()
-                .stream().map(componentConfiguration ->
-                        healthCheck(componentConfiguration.getPath())).collect(Collectors.toList());
-        Flux.merge(listMono).collectList().block();
+        List<Mono<Event>> events = componentService.getComponents().stream()
+                .map(componentConfiguration -> healthCheck(componentConfiguration.getPath())).collect(Collectors.toList());
+        Flux.merge(events).collectList().block();
     }
 
     private Mono<Event> healthCheck(String path) {
-        String newHealthCheckURL = String
-                .format("%s/admin/health", path);
+        String newHealthCheckURL = String.format("%s/admin/health", path);
         return webClient
                 .get()
                 .uri(newHealthCheckURL)
@@ -53,22 +51,25 @@ public class HealthService {
                     errorEvent.setTime(System.currentTimeMillis());
                     return Mono.just(errorEvent);
                 })
-                .doOnSuccess(healthResult -> completeStatusMap.put(path, healthResult));
+                .doOnSuccess(healthResult -> completedHealthChecks.put(path, healthResult));
     }
 
-    public HealthCheckResponse getStatus() {
-        //return completeStatusMap;
-        return null;
+    public HealthCheckResponse getHealthCheck(String path) {
+        Event event = completedHealthChecks.get(path);
+        return new HealthCheckResponse(path, event);
     }
 
-    public boolean healthCheckOne(String path) {
+    public List<HealthCheckResponse> getHealthChecks() {
+        return completedHealthChecks.entrySet().stream()
+                .map(entry -> new HealthCheckResponse(entry.getKey(), entry.getValue())).collect(Collectors.toList());
+    }
+
+    public void healthCheckOne(String path) {
         try {
-            Mono<Event> monoEvent = healthCheck(path);
-            monoEvent.block();
-            return true;
+            healthCheck(path).block();
         } catch (Throwable t) {
-            t.printStackTrace();
-            return false;
+            log.error("Exception occurred during single health check", t);
+            throw t;
         }
     }
 }

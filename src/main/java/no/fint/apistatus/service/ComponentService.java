@@ -21,7 +21,7 @@ public class ComponentService {
 
     public List<ComponentConfiguration> getComponents() {
         Flux<ComponentConfiguration> componentConfigurationFlux = webClient
-                .get().uri("api/components/configurations")
+                .get().uri("/api/components/configurations")
                 .retrieve().bodyToFlux(ComponentConfiguration.class);
 
         return componentConfigurationFlux.collectList().block(Duration.ofSeconds(15));

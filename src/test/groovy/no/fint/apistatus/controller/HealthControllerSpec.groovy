@@ -40,13 +40,24 @@ class HealthControllerSpec extends Specification {
         result.andExpect(status().isOk())
     }
 
-    def "Get health"() {
+    def "Get all health checks"() {
         when:
         def result = mockMvc.perform(get('/api/healthcheck'))
 
         then:
-        1 * healthService.getStatus() >> new HealthCheckResponse('http://localhost', new Event())
+        1 * healthService.getHealthChecks() >> [new HealthCheckResponse('http://localhost', new Event())]
         result.andExpect(status().isOk())
-                .andExpect(jsonPath('$.apiBaseUrl', equalTo('http://localhost')))
+                .andExpect(jsonPath('$[0].apiBaseUrl', equalTo('http://localhost')))
+    }
+
+    def "Get health check for path"() {
+        when:
+        def result = mockMvc.perform(get('/api/healthcheck?path=/test'))
+
+        then:
+        1 * healthService.getHealthCheck('/test') >> new HealthCheckResponse('http://localhost', new Event())
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath('$[0].apiBaseUrl', equalTo('http://localhost')))
+
     }
 }
