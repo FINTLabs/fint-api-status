@@ -1,37 +1,33 @@
 package no.fint.apistatus.service
 
-import com.fasterxml.jackson.databind.ObjectMapper
+
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import org.springframework.core.io.ClassPathResource
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
 import spock.lang.Specification
 
 class ComponentServiceSpec extends Specification {
 
-    def "Get component configurations"() {
+    private def server = new MockWebServer()
 
+    private def componentService = new ComponentService(webClient: WebClient.create(server.url('/').toString()))
+    private def jsonResponse = new ClassPathResource('componentConfigurations.json').getFile().text
+
+    void cleanup() {
+        server.shutdown()
+    }
+
+    def "Get component configurations"() {
         given:
-        def componentService = new ComponentService(componentConfigurationUri: "https://admin.fintlabs.no/", webClient: WebClient.create())
-        componentService.init()
+        server.enqueue(new MockResponse().setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).setBody(jsonResponse))
+
         when:
         def components = componentService.getComponents()
 
         then:
-        components.size() > 0
-        components.every{it.name != null}
-    }
-
-    def "Name"() {
-        given:
-        def om = new ObjectMapper()
-
-        when:
-        def value = om.readValue("{\n" +
-                "    \"name\": \"administrasjon-okonomi\",\n" +
-                "    \"port\": 8290,\n" +
-                "    \"path\": \"/administrasjon/okonomi\",\n" +
-                "    \"assetPath\": \"/api/components/assets/administrasjon_okonomi\"\n" +
-                "  }", ComponentConfiguration)
-
-        then:
-        value.name
+        components.size() == 2
     }
 }
