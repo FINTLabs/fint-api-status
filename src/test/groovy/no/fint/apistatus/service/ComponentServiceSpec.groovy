@@ -1,6 +1,5 @@
 package no.fint.apistatus.service
 
-
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.springframework.core.io.ClassPathResource

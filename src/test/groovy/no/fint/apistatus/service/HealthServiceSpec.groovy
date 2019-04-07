@@ -5,6 +5,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
 import spock.lang.Specification
@@ -96,5 +97,18 @@ class HealthServiceSpec extends Specification {
         1 * componentService.getComponents() >> [failedComponent]
         healthChecks.size() == 1
         healthChecks[0].event.time
+    }
+
+    def "Health check responds with 404"() {
+        given:
+        server.enqueue(new MockResponse().setResponseCode(HttpStatus.NOT_FOUND.value()))
+
+        when:
+        healthService.healthCheckOne('administrasjon/personal')
+        def healthChecks = healthService.getHealthChecks()
+
+        then:
+        healthChecks.size() == 1
+        healthChecks[0].event.data.size() == 2
     }
 }
