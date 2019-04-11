@@ -1,0 +1,14 @@
+[
+  {
+    "name": "administrasjon-arkiv",
+    "port": 9998,
+    "path": "/administrasjon/arkiv",
+    "assetPath": "/api/components/assets/administrasjon_arkiv"
+  },
+  {
+    "name": "betaling",
+    "port": 9998,
+    "path": "/betaling",
+    "assetPath": "/api/components/assets/betaling"
+  }
+]
