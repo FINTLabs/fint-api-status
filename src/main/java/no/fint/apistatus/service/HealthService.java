@@ -31,9 +31,11 @@ public class HealthService {
 
     @Scheduled(fixedRateString = "${fint.apistatus.healthcheck-rate-ms:180000}", initialDelay = 10000)
     public void healthCheckAll() {
+        log.info("Running health chekcs...");
         List<Mono<Event>> events = componentService.getComponents().stream()
                 .map(componentConfiguration -> healthCheck(componentConfiguration.getPath())).collect(Collectors.toList());
         Flux.merge(events).collectList().block();
+        log.info("End running health chekcs");
     }
 
     private Mono<Event> healthCheck(String path) {
