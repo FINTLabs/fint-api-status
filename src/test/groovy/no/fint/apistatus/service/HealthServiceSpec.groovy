@@ -1,6 +1,9 @@
 package no.fint.apistatus.service
 
+import no.fint.apistatus.ApplicationConfig
+import no.fint.apistatus.WebClientHealth
 import no.fint.apistatus.model.ComponentConfiguration
+import no.fint.apistatus.oauth.TokenService
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.springframework.core.io.ClassPathResource
@@ -28,9 +31,12 @@ class HealthServiceSpec extends Specification {
     )
 
     private def componentService = Mock(ComponentService)
+    private def webClient = WebClient.create(server.url('/').toString())
+    private def tokenService = Mock(TokenService)
 
     def healthService = new HealthService(componentService: componentService,
-            webClient: WebClient.create(server.url('/').toString()))
+            webClient: new WebClientHealth(webClient: webClient, tokenService: tokenService),
+            config: new ApplicationConfig(configurationBaseUrl: '', healthBaseUrl: ''))
 
     def successResponse = new MockResponse()
             .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)

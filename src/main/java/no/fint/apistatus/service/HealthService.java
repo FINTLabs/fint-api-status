@@ -1,12 +1,13 @@
 package no.fint.apistatus.service;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fint.apistatus.ApplicationConfig;
+import no.fint.apistatus.WebClientHealth;
 import no.fint.apistatus.model.HealthCheckResponse;
 import no.fint.event.model.Event;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -14,20 +15,19 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static no.fint.apistatus.ApplicationConfig.TargetService;
-import static no.fint.apistatus.ApplicationConfig.TargetService.ServiceTypes.HEALTH;
-
 @Slf4j
 @Service
 public class HealthService {
     private final ConcurrentHashMap<String, Event> completedHealthChecks = new ConcurrentHashMap<>();
 
     @Autowired
-    @TargetService(HEALTH)
-    private WebClient webClient;
+    private WebClientHealth webClient;
 
     @Autowired
     private ComponentService componentService;
+
+    @Autowired
+    private ApplicationConfig config;
 
     @Scheduled(fixedRateString = "${fint.apistatus.healthcheck-rate-ms:180000}", initialDelay = 10000)
     public void healthCheckAll() {
@@ -39,11 +39,8 @@ public class HealthService {
     }
 
     private Mono<Event> healthCheck(String path) {
-        String newHealthCheckURL = String.format("%s/admin/health", path);
-        return webClient
-                .get()
-                .uri(newHealthCheckURL)
-                .retrieve()
+        String newHealthCheckURL = String.format("%s%s/admin/health", config.getHealthBaseUrl(), path);
+        return webClient.get(newHealthCheckURL)
                 .bodyToMono(Event.class)
                 .onErrorResume(e -> {
                     Event<String> errorEvent = new Event<>();

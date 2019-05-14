@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-status
+  annotations: {service.beta.kubernetes.io/azure-load-balancer-internal: 'true'}
+spec:
+  selector:
+    app: api-status
+  type: LoadBalancer
+  ports:
+    - {name: '8080', port: 8080}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-status
+spec:
+  selector:
+    matchLabels:
+      app: api-status
+  template:
+    metadata:
+      labels:
+        app: api-status
+    spec:
+      containers:
+        - name: api-status
+          image: fintlabs.azurecr.io/api-status:build.3
+          resources:
+            limits:
+              memory: "2Gi"
+              cpu: "2"
+            requests:
+              memory: "1Gi"
+              cpu: "250m"
+          ports:
+            - containerPort: 8080
+          env:
+            - {name: TZ, value: Europe/Oslo}
+            - {name: JAVA_TOOL_OPTIONS, value: '-XX:+ExitOnOutOfMemoryError -Xmx1G -verbose:gc'}

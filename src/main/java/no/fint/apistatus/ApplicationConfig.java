@@ -1,5 +1,6 @@
 package no.fint.apistatus;
 
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -23,6 +24,7 @@ public class ApplicationConfig {
     @Value("${fint.apistatus.orgid-header:health.fintlabs.no}")
     private String orgIdHeader;
 
+    @Getter
     @Value("${fint.apistatus.health-base-url:https://play-with-fint.felleskomponent.no}")
     private String healthBaseUrl;
 
@@ -32,12 +34,13 @@ public class ApplicationConfig {
     @Bean
     @TargetService(HEALTH)
     public WebClient healthWebClient() {
+
         return WebClient.builder()
                 .defaultHeader("x-client", clientHeader)
                 .defaultHeader("x-org-id", orgIdHeader)
-                .baseUrl(healthBaseUrl)
                 .build();
     }
+
 
     @Bean
     @TargetService(CONFIGURATION)

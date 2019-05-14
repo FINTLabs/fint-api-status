@@ -8,4 +8,6 @@ public class ComponentConfiguration {
     private Integer port;
     private String path;
     private String assetPath;
+    private boolean isInProduction;
+    private boolean isInBeta;
 }
