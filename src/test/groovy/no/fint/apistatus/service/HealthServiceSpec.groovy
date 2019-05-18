@@ -21,13 +21,15 @@ class HealthServiceSpec extends Specification {
             name: "administrasjon-personal",
             port: 0,
             path: "/administrasjon/personal",
-            assetPath: "/api/components/assets/administrasjon/personal"
+            assetPath: "/api/components/assets/administrasjon/personal",
+            isInProduction: true
     )
     private def failedComponent = new ComponentConfiguration(
             name: "a-failing-uri",
             port: 0,
             path: "/failing/uri",
-            assetPath: "/api/components/assets/failing/uri"
+            assetPath: "/api/components/assets/failing/uri",
+            isInProduction: true
     )
 
     private def componentService = Mock(ComponentService)
@@ -36,7 +38,7 @@ class HealthServiceSpec extends Specification {
 
     def healthService = new HealthService(componentService: componentService,
             webClient: new WebClientHealth(webClient: webClient, tokenService: tokenService),
-            config: new ApplicationConfig(configurationBaseUrl: '', healthBaseUrl: ''))
+            config: new ApplicationConfig(configurationBaseUrl: '', healthBaseUrlTemplate: ''))
 
     def successResponse = new MockResponse()
             .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -54,14 +56,14 @@ class HealthServiceSpec extends Specification {
         server.enqueue(successResponse)
 
         when:
-        healthService.healthCheckOne('administrasjon/personal')
+        healthService.healthCheckOne('administrasjon/personal', 'api')
         def healthChecks = healthService.getHealthChecks()
 
         then:
         healthChecks.size() == 1
-        healthChecks[0].apiBaseUrl == 'administrasjon/personal'
-        healthChecks[0].event.data[0].status == 'APPLICATION_HEALTHY'
-        healthChecks[0].event.data[1].status == 'RECEIVED_IN_CONSUMER_FROM_PROVIDER'
+        healthChecks.get("api")[0].path == 'administrasjon/personal'
+        healthChecks.get("api")[0].healthy
+        healthChecks.get("api")[0].event.data[1]['status'] == 'RECEIVED_IN_CONSUMER_FROM_PROVIDER'
     }
 
     def "Multiple health checks on same component returns last check only"() {
@@ -70,8 +72,8 @@ class HealthServiceSpec extends Specification {
         server.enqueue(successResponse)
 
         when:
-        healthService.healthCheckOne('administrasjon/personal')
-        healthService.healthCheckOne('administrasjon/personal')
+        healthService.healthCheckOne('administrasjon/personal', 'api')
+        healthService.healthCheckOne('administrasjon/personal', 'api')
         def healthChecks = healthService.getHealthChecks()
 
         then:
@@ -102,7 +104,7 @@ class HealthServiceSpec extends Specification {
         then:
         1 * componentService.getComponents() >> [failedComponent]
         healthChecks.size() == 1
-        healthChecks[0].event.time
+        healthChecks.get('api')[0].event.time
     }
 
     def "Health check responds with 404"() {
@@ -110,11 +112,11 @@ class HealthServiceSpec extends Specification {
         server.enqueue(new MockResponse().setResponseCode(HttpStatus.NOT_FOUND.value()))
 
         when:
-        healthService.healthCheckOne('administrasjon/personal')
+        healthService.healthCheckOne('administrasjon/personal', 'api')
         def healthChecks = healthService.getHealthChecks()
 
         then:
         healthChecks.size() == 1
-        healthChecks[0].event.data.size() == 2
+        healthChecks.get('api')[0].event.data.size() == 2
     }
 }

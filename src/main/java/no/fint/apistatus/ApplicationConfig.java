@@ -11,6 +11,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.List;
 
 import static no.fint.apistatus.ApplicationConfig.TargetService.ServiceTypes.CONFIGURATION;
 import static no.fint.apistatus.ApplicationConfig.TargetService.ServiceTypes.HEALTH;
@@ -25,8 +26,12 @@ public class ApplicationConfig {
     private String orgIdHeader;
 
     @Getter
-    @Value("${fint.apistatus.health-base-url:https://play-with-fint.felleskomponent.no}")
-    private String healthBaseUrl;
+    @Value("${fint.apistatus.health-base-url-template:https://%s.felleskomponent.no%s/admin/health}")
+    private String healthBaseUrlTemplate;
+
+    @Getter
+    @Value("${fint.apistatus.environments:api,beta,play-with-fint}")
+    private List<String> environments;
 
     @Value("${fint.apistatus.configuration-base-url:https://admin.fintlabs.no}")
     private String configurationBaseUrl;

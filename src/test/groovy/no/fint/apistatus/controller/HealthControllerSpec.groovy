@@ -27,7 +27,7 @@ class HealthControllerSpec extends Specification {
 
     def "Post new health check"() {
         given:
-        def request = new HealthCheckRequest("http://localhost")
+        def request = new HealthCheckRequest('test/test', 'api')
         def json = new ObjectMapper().writeValueAsString(request)
 
         when:
@@ -36,7 +36,7 @@ class HealthControllerSpec extends Specification {
                 .content(json))
 
         then:
-        1 * healthService.healthCheckOne(request.apiBaseUrl)
+        1 * healthService.healthCheckOne(_ as String, _ as String)
         result.andExpect(status().isOk())
     }
 
@@ -45,19 +45,19 @@ class HealthControllerSpec extends Specification {
         def result = mockMvc.perform(get('/api/healthcheck'))
 
         then:
-        1 * healthService.getHealthChecks() >> [new HealthCheckResponse('http://localhost', new Event())]
+        1 * healthService.getHealthChecks() >> ['api': [new HealthCheckResponse('http://localhost', new Event())]]
         result.andExpect(status().isOk())
-                .andExpect(jsonPath('$[0].apiBaseUrl', equalTo('http://localhost')))
+                .andExpect(jsonPath('$.api[0].path', equalTo('http://localhost')))
     }
 
     def "Get health check for path"() {
         when:
-        def result = mockMvc.perform(get('/api/healthcheck?path=/test'))
+        def result = mockMvc.perform(get('/api/healthcheck/api?path=/test'))
 
         then:
-        1 * healthService.getHealthCheck('/test') >> new HealthCheckResponse('http://localhost', new Event())
+        1 * healthService.getHealthCheck('/test', 'api') >> ['api': [new HealthCheckResponse('http://localhost', new Event())]]
         result.andExpect(status().isOk())
-                .andExpect(jsonPath('$[0].apiBaseUrl', equalTo('http://localhost')))
+                .andExpect(jsonPath('$.api[0].path', equalTo('http://localhost')))
 
     }
 }
