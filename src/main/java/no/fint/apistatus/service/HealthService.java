@@ -1,7 +1,5 @@
 package no.fint.apistatus.service;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
 import lombok.extern.slf4j.Slf4j;
 import no.fint.apistatus.ApplicationConfig;
 import no.fint.apistatus.WebClientHealth;
@@ -15,20 +13,13 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
 @Service
 public class HealthService {
-
-    private final Multimap<String, HealthCheckResponse> completedHealthChecks = ArrayListMultimap.create();
-    // TODO: 2019-05-18 Needs to be concurrent
-    //private final ConcurrentMap<String, List<HealthCheckResponse>> healthChecks = new ConcurrentHashMap<>();
 
     @Autowired
     private WebClientHealth webClient;
@@ -39,10 +30,12 @@ public class HealthService {
     @Autowired
     private ApplicationConfig config;
 
+    @Autowired
+    private HealthRepository repository;
+
 
     @Scheduled(fixedRateString = "${fint.apistatus.healthcheck-rate-ms:180000}", initialDelay = 10000)
     public void healthCheckAll() {
-        completedHealthChecks.clear();
         log.info("Running health checks...");
         List<Mono<Event>> events = componentService.getComponents()
                 .stream()
@@ -90,30 +83,8 @@ public class HealthService {
                     errorEvent.setTime(System.currentTimeMillis());
                     return Mono.just(errorEvent);
                 })
-                .doOnSuccess(healthResult -> {
-                            completedHealthChecks.get(healthCheckProps.getEnvironment())
-                                    .removeIf(e -> e.getPath().equals(healthCheckProps.getPath()));
-                            completedHealthChecks.put(
-                                    healthCheckProps.getEnvironment(),
-                                    new HealthCheckResponse(healthCheckProps.getPath(), healthResult));
-                        }
+                .doOnSuccess(healthResult -> repository.add(new HealthCheckResponse(healthCheckProps, healthResult))
                 );
-    }
-
-    public Optional<HealthCheckResponse> getHealthCheck(String path, String environment) {
-        return completedHealthChecks.get(environment)
-                .stream()
-                .filter(o -> o.getPath().equals(path))
-                .findFirst();
-
-    }
-
-    public Collection<HealthCheckResponse> getHealthCheckByEnvironment(String environment) {
-        return completedHealthChecks.get(environment);
-    }
-
-    public Map<String, Collection<HealthCheckResponse>> getHealthChecks() {
-        return completedHealthChecks.asMap();
     }
 
     public void healthCheckOne(String path, String environment) {

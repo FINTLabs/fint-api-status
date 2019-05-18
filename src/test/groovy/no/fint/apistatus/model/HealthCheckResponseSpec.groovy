@@ -7,6 +7,14 @@ import spock.lang.Specification
 
 class HealthCheckResponseSpec extends Specification {
 
+    private HealthCheckProps healthCheckProps
+    void setup() {
+        healthCheckProps = new HealthCheckProps.Builder('http://%s.test.no/%s/test')
+                .withEnvironment('api')
+                .withPath('/test/test')
+                .build()
+    }
+
     def "isHealthy is true on healthy event"() {
         given:
         def data = new ArrayList()
@@ -17,7 +25,7 @@ class HealthCheckResponseSpec extends Specification {
         def event = new Event(data: data)
 
         when:
-        def response = new HealthCheckResponse("/test/test", event)
+        def response = new HealthCheckResponse(healthCheckProps, event)
 
         then:
         response.healthy
@@ -31,7 +39,7 @@ class HealthCheckResponseSpec extends Specification {
         def event = new Event(data: data)
 
         when:
-        def response = new HealthCheckResponse("/test/test", event)
+        def response = new HealthCheckResponse(healthCheckProps, event)
 
         then:
         !response.healthy

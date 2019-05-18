@@ -1,5 +1,6 @@
 package no.fint.apistatus.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,6 +14,7 @@ public class HealthCheckProps {
 
     String name;
 
+    @JsonIgnore
     String healthBaseUrlTemplate;
 
     private HealthCheckProps() {

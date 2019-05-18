@@ -35,10 +35,12 @@ class HealthServiceSpec extends Specification {
     private def componentService = Mock(ComponentService)
     private def webClient = WebClient.create(server.url('/').toString())
     private def tokenService = Mock(TokenService)
+    private def healthRepository = new HealthRepository()
 
     def healthService = new HealthService(componentService: componentService,
             webClient: new WebClientHealth(webClient: webClient, tokenService: tokenService),
-            config: new ApplicationConfig(configurationBaseUrl: '', healthBaseUrlTemplate: ''))
+            config: new ApplicationConfig(configurationBaseUrl: '', healthBaseUrlTemplate: ''),
+            repository: healthRepository)
 
     def successResponse = new MockResponse()
             .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -57,11 +59,11 @@ class HealthServiceSpec extends Specification {
 
         when:
         healthService.healthCheckOne('administrasjon/personal', 'api')
-        def healthChecks = healthService.getHealthChecks()
+        def healthChecks = healthRepository.getHealthChecks()
 
         then:
         healthChecks.size() == 1
-        healthChecks.get("api")[0].path == 'administrasjon/personal'
+        healthChecks.get("api")[0].props.path == 'administrasjon/personal'
         healthChecks.get("api")[0].healthy
         healthChecks.get("api")[0].event.data[1]['status'] == 'RECEIVED_IN_CONSUMER_FROM_PROVIDER'
     }
@@ -74,7 +76,7 @@ class HealthServiceSpec extends Specification {
         when:
         healthService.healthCheckOne('administrasjon/personal', 'api')
         healthService.healthCheckOne('administrasjon/personal', 'api')
-        def healthChecks = healthService.getHealthChecks()
+        def healthChecks = healthRepository.getHealthChecks()
 
         then:
         healthChecks.size() == 1
@@ -86,7 +88,7 @@ class HealthServiceSpec extends Specification {
 
         when:
         healthService.healthCheckAll()
-        def healthChecks = healthService.getHealthChecks()
+        def healthChecks = healthRepository.getHealthChecks()
 
         then:
         1 * componentService.getComponents() >> [successComponent]
@@ -99,7 +101,7 @@ class HealthServiceSpec extends Specification {
 
         when:
         healthService.healthCheckAll()
-        def healthChecks = healthService.getHealthChecks()
+        def healthChecks = healthRepository.getHealthChecks()
 
         then:
         1 * componentService.getComponents() >> [failedComponent]
@@ -113,7 +115,7 @@ class HealthServiceSpec extends Specification {
 
         when:
         healthService.healthCheckOne('administrasjon/personal', 'api')
-        def healthChecks = healthService.getHealthChecks()
+        def healthChecks = healthRepository.getHealthChecks()
 
         then:
         healthChecks.size() == 1
