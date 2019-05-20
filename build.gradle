@@ -36,3 +36,9 @@ dependencies {
 	testImplementation('org.spockframework:spock-spring:1.2-groovy-2.5')
 	testImplementation('org.springframework.boot:spring-boot-starter-test')
 }
+
+jacocoTestReport {
+	reports {
+		xml.enabled true
+	}
+}
