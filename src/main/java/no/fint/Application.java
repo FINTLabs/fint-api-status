@@ -1,4 +1,4 @@
-package no.fint.apistatus;
+package no.fint;
 
 import com.github.springfox.loader.EnableSpringfox;
 import org.springframework.boot.SpringApplication;

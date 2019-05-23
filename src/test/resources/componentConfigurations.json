@@ -3,12 +3,14 @@
     "name": "administrasjon-arkiv",
     "port": 9998,
     "path": "/administrasjon/arkiv",
-    "assetPath": "/api/components/assets/administrasjon_arkiv"
+    "assetPath": "/api/components/assets/administrasjon_arkiv",
+    "isInProduction": "true"
   },
   {
     "name": "betaling",
     "port": 9998,
     "path": "/betaling",
-    "assetPath": "/api/components/assets/betaling"
+    "assetPath": "/api/components/assets/betaling",
+    "isInProduction": "true"
   }
 ]

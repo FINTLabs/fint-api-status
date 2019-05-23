@@ -8,5 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class HealthCheckRequest {
-    private String apiBaseUrl;
+    private String path;
+    private String environment;
 }

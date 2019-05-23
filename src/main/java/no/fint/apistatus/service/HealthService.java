@@ -3,6 +3,8 @@ package no.fint.apistatus.service;
 import lombok.extern.slf4j.Slf4j;
 import no.fint.apistatus.ApplicationConfig;
 import no.fint.apistatus.WebClientHealth;
+import no.fint.apistatus.model.ComponentConfiguration;
+import no.fint.apistatus.model.HealthCheckProps;
 import no.fint.apistatus.model.HealthCheckResponse;
 import no.fint.event.model.Event;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,13 +14,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
 public class HealthService {
-    private final ConcurrentHashMap<String, Event> completedHealthChecks = new ConcurrentHashMap<>();
 
     @Autowired
     private WebClientHealth webClient;
@@ -29,43 +30,74 @@ public class HealthService {
     @Autowired
     private ApplicationConfig config;
 
+    @Autowired
+    private HealthRepository repository;
+
+
     @Scheduled(fixedRateString = "${fint.apistatus.healthcheck-rate-ms:180000}", initialDelay = 10000)
     public void healthCheckAll() {
-        log.info("Running health chekcs...");
-        List<Mono<Event>> events = componentService.getComponents().stream()
-                .map(componentConfiguration -> healthCheck(componentConfiguration.getPath())).collect(Collectors.toList());
+        log.info("Running health checks...");
+        List<Mono<Event>> events = componentService.getComponents()
+                .stream()
+                .flatMap(this::getComponents)
+                .map(this::healthCheck)
+                .collect(Collectors.toList());
         Flux.merge(events).collectList().block();
-        log.info("End running health chekcs");
+        log.info("End running health checks");
     }
 
-    private Mono<Event> healthCheck(String path) {
-        String newHealthCheckURL = String.format("%s%s/admin/health", config.getHealthBaseUrl(), path);
-        return webClient.get(newHealthCheckURL)
+
+    private Stream<HealthCheckProps> getComponents(ComponentConfiguration componentConfiguration) {
+        Stream.Builder<HealthCheckProps> stream = Stream.builder();
+        if (componentConfiguration.isInBeta()) {
+            stream.add(HealthCheckProps.builder()
+                    .healthBaseUrlTemplate(config.getHealthBaseUrlTemplate())
+                    .environment("beta")
+                    .name(componentConfiguration.getName())
+                    .path(componentConfiguration.getPath())
+                    .build()
+            );
+        }
+
+        if (componentConfiguration.isInProduction()) {
+            stream.add(HealthCheckProps.builder()
+                    .healthBaseUrlTemplate(config.getHealthBaseUrlTemplate())
+                    .environment("api")
+                    .name(componentConfiguration.getName())
+                    .path(componentConfiguration.getPath())
+                    .build()
+            );
+        }
+
+        return stream.build();
+    }
+
+    private Mono<Event> healthCheck(HealthCheckProps healthCheckProps) {
+        log.info("Running health check on {}", healthCheckProps.getUrl());
+        return webClient.get(healthCheckProps.getUrl())
                 .bodyToMono(Event.class)
                 .onErrorResume(e -> {
                     Event<String> errorEvent = new Event<>();
                     errorEvent.addData(e.getMessage());
                     errorEvent.addData(e.getClass().getSimpleName());
-                    errorEvent.setSource(path);
+                    errorEvent.setSource(healthCheckProps.getName());
                     errorEvent.setTime(System.currentTimeMillis());
                     return Mono.just(errorEvent);
                 })
-                .doOnSuccess(healthResult -> completedHealthChecks.put(path, healthResult));
+                .doOnSuccess(healthResult -> repository.add(new HealthCheckResponse(healthCheckProps, healthResult))
+                );
     }
 
-    public HealthCheckResponse getHealthCheck(String path) {
-        Event event = completedHealthChecks.get(path);
-        return new HealthCheckResponse(path, event);
-    }
-
-    public List<HealthCheckResponse> getHealthChecks() {
-        return completedHealthChecks.entrySet().stream()
-                .map(entry -> new HealthCheckResponse(entry.getKey(), entry.getValue())).collect(Collectors.toList());
-    }
-
-    public void healthCheckOne(String path) {
+    public void healthCheckOne(String path, String environment) {
         try {
-            healthCheck(path).block();
+            log.info("Running single health checks...");
+            healthCheck(HealthCheckProps.builder()
+                    .healthBaseUrlTemplate(config.getHealthBaseUrlTemplate())
+                    .environment(environment)
+                    .path(path)
+                    .build()
+            ).block();
+            log.info("End running single health checks...");
         } catch (Throwable t) {
             log.error("Exception occurred during single health check", t);
             throw t;
