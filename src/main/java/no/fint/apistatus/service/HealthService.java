@@ -49,21 +49,22 @@ public class HealthService {
 
     private Stream<HealthCheckProps> getComponents(ComponentConfiguration componentConfiguration) {
         Stream.Builder<HealthCheckProps> stream = Stream.builder();
-
         if (componentConfiguration.isInBeta()) {
-            stream.add(new HealthCheckProps.Builder(config.getHealthBaseUrlTemplate())
-                    .withEnvironment("beta")
-                    .withName(componentConfiguration.getName())
-                    .withPath(componentConfiguration.getPath())
+            stream.add(HealthCheckProps.builder()
+                    .healthBaseUrlTemplate(config.getHealthBaseUrlTemplate())
+                    .environment("beta")
+                    .name(componentConfiguration.getName())
+                    .path(componentConfiguration.getPath())
                     .build()
             );
         }
 
         if (componentConfiguration.isInProduction()) {
-            stream.add(new HealthCheckProps.Builder(config.getHealthBaseUrlTemplate())
-                    .withEnvironment("api")
-                    .withName(componentConfiguration.getName())
-                    .withPath(componentConfiguration.getPath())
+            stream.add(HealthCheckProps.builder()
+                    .healthBaseUrlTemplate(config.getHealthBaseUrlTemplate())
+                    .environment("api")
+                    .name(componentConfiguration.getName())
+                    .path(componentConfiguration.getPath())
                     .build()
             );
         }
@@ -90,9 +91,10 @@ public class HealthService {
     public void healthCheckOne(String path, String environment) {
         try {
             log.info("Running single health checks...");
-            healthCheck(new HealthCheckProps.Builder(config.getHealthBaseUrlTemplate())
-                    .withEnvironment(environment)
-                    .withPath(path)
+            healthCheck(HealthCheckProps.builder()
+                    .healthBaseUrlTemplate(config.getHealthBaseUrlTemplate())
+                    .environment(environment)
+                    .path(path)
                     .build()
             ).block();
             log.info("End running single health checks...");

@@ -9,9 +9,10 @@ class HealthCheckResponseSpec extends Specification {
 
     private HealthCheckProps healthCheckProps
     void setup() {
-        healthCheckProps = new HealthCheckProps.Builder('http://%s.test.no/%s/test')
-                .withEnvironment('api')
-                .withPath('/test/test')
+        healthCheckProps = HealthCheckProps.builder()
+        .healthBaseUrlTemplate('http://%s.test.no/%s/test')
+                .environment('api')
+                .path('/test/test')
                 .build()
     }
 

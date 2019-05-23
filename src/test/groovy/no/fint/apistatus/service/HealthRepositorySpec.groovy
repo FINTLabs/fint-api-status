@@ -13,9 +13,10 @@ class HealthRepositorySpec extends Specification {
 
     void setup() {
         repository = new HealthRepository()
-        props = new HealthCheckProps.Builder('http://%s.test.no/%s/test')
-                .withEnvironment('api')
-                .withPath('/test/test')
+        props = HealthCheckProps.builder()
+        .healthBaseUrlTemplate('http://%s.test.no/%s/test')
+                .environment('api')
+                .path('/test/test')
                 .build()
         response = new HealthCheckResponse(props, new Event())
     }

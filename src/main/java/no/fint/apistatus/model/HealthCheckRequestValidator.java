@@ -23,7 +23,7 @@ public class HealthCheckRequestValidator {
 
         return applicationConfig.getEnvironments()
                 .stream()
-                .filter(e -> e.equals(request.getEnvironment()))
+                .filter(request.getEnvironment()::equals)
                 .count() == 1;
     }
 }

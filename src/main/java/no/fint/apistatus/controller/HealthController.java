@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 @CrossOrigin
@@ -45,7 +45,7 @@ class HealthController {
 
 
     @GetMapping
-    public Map<String, List<HealthCheckResponse>> getHealthChecks() {
+    public Map<String, Collection<HealthCheckResponse>> getHealthChecks() {
         return healthRepository.getHealthChecks();
     }
 

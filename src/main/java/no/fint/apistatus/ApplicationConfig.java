@@ -55,7 +55,6 @@ public class ApplicationConfig {
                 .build();
     }
 
-
     @Target({ElementType.METHOD, ElementType.FIELD})
     @Retention(RetentionPolicy.RUNTIME)
     @Qualifier

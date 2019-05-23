@@ -3,7 +3,7 @@ package no.fint.apistatus.service
 import no.fint.apistatus.ApplicationConfig
 import no.fint.apistatus.WebClientHealth
 import no.fint.apistatus.model.ComponentConfiguration
-import no.fint.apistatus.oauth.TokenService
+import no.fint.oauth.TokenService
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.springframework.core.io.ClassPathResource

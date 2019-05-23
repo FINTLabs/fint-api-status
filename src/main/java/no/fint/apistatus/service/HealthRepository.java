@@ -1,29 +1,30 @@
 package no.fint.apistatus.service;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import lombok.Data;
 import no.fint.apistatus.model.HealthCheckResponse;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.*;
 
-@Data
 @Component
 public class HealthRepository {
 
-    private final ConcurrentMap<String, List<HealthCheckResponse>> healthChecks = new ConcurrentHashMap<>();
+    private final Multimap<String, HealthCheckResponse> healthChecks = Multimaps.synchronizedListMultimap(ArrayListMultimap.create());
+
 
     public void add(HealthCheckResponse response) {
-        createEnvironmentIfNotExists(response.getProps().getEnvironment());
         removeResponseIfExists(response);
-        healthChecks.get(response.getProps().getEnvironment()).add(response);
+        healthChecks.put(response.getProps().getEnvironment(), response);
     }
 
-    public List<HealthCheckResponse> getHealthCheckByEnvironment(String environment) {
+    public Map<String, Collection<HealthCheckResponse>> getHealthChecks() {
+        return healthChecks.asMap();
+    }
+
+    public Collection<HealthCheckResponse> getHealthCheckByEnvironment(String environment) {
         return healthChecks.get(environment);
     }
 
@@ -34,14 +35,9 @@ public class HealthRepository {
                 .findFirst();
     }
 
+
     private void removeResponseIfExists(HealthCheckResponse response) {
         healthChecks.get(response.getProps().getEnvironment())
                 .removeIf(e -> e.getProps().getPath().equals(response.getProps().getPath()));
-    }
-
-    private void createEnvironmentIfNotExists(String environment) {
-        if (!healthChecks.containsKey(environment)) {
-            healthChecks.put(environment, Collections.synchronizedList(new ArrayList<>()));
-        }
     }
 }
