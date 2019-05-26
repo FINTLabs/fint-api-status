@@ -19,14 +19,12 @@ class HealthServiceSpec extends Specification {
 
     private def successComponent = new ComponentConfiguration(
             name: "administrasjon-personal",
-            port: 0,
             path: "/administrasjon/personal",
             assetPath: "/api/components/assets/administrasjon/personal",
             isInProduction: true
     )
     private def failedComponent = new ComponentConfiguration(
             name: "a-failing-uri",
-            port: 0,
             path: "/failing/uri",
             assetPath: "/api/components/assets/failing/uri",
             isInProduction: true
