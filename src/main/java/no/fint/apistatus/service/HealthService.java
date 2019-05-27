@@ -69,6 +69,16 @@ public class HealthService {
             );
         }
 
+        if (componentConfiguration.isInPlayWithFint()) {
+            stream.add(HealthCheckProps.builder()
+                    .healthBaseUrlTemplate(config.getHealthBaseUrlTemplate())
+                    .environment("play-with-fint")
+                    .name(componentConfiguration.getName())
+                    .path(componentConfiguration.getPath())
+                    .build()
+            );
+        }
+
         return stream.build();
     }
 
